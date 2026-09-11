@@ -1937,3 +1937,83 @@ Two, both deliberate and both already named. `bundle destroy` on the old user pa
 for the next refit to move the champion's lineage off it (D-40). And the daily schedule
 is `PAUSED`: everything is in place for it to run unattended, and turning it on is a
 decision about spending, not about whether the pipeline works.
+
+## D-43 The refit that did not cut the lineage — and the comparison that cannot settle it
+
+Run to move the champion's lineage off the user path D-40 left behind. The mechanism
+worked; the promotion gate declined, so the tie holds.
+
+### Two more securables — seven, not five
+
+`CREATE_MODEL` on the catalog creates *new* registered models. Writing a version into
+an existing one owned by somebody else is a different privilege on a different
+securable, and `MANAGE` does not imply it:
+
+```
+MANAGE                 -> still PERMISSION_DENIED: ... does not have CREATE MODEL VERSION
+MANAGE + CREATE_MODEL_VERSION  -> registers
+```
+
+Both were granted on `energy.ml.demand_forecaster` and its `energy_dev` twin. Ownership
+stays with the human, who also owns both catalogs — unlike the jobs in D-40, this did
+not need a transfer, because the privilege exists separately from ownership here.
+
+### The declared experiment works
+
+v3's run landed where it was supposed to:
+
+```
+v2  /Users/20133050@…/.bundle/energy/prod/files/notebooks/10_refit_register   <- old, notebook-backed
+v3  /Users/67fe02eb…/mlflow-energy                                            <- declared (D-40)
+```
+
+So the fix is confirmed end to end. What it does not do is retroactively move v2.
+
+### The gate said no, by 0.57%
+
+```
+champion  v2   3409.0 MAE   888 holdout rows   labels through 2026-09-08
+candidate v3   3497.2 MAE   960 holdout rows   labels through 2026-09-11
+threshold      3477.2  (champion + 2%)
+v3 exceeds it by 20.0 MAE — 0.57%
+```
+
+The gate behaved exactly as D-36 specifies. **The problem is that the two numbers are
+not measured on the same thing.**
+
+The holdout is `forecast_date >= start of (latest month − 1)`, so its start is fixed at
+1 August for both runs while its end follows the data. v3's holdout is v2's plus three
+days — 72 rows, **7.5% of the evaluation set, present in one score and absent from the
+other**.
+
+That is enough to produce the entire difference. If v3 were identical to v2 on the 888
+shared rows, the 72 new ones would need an MAE of 4584 — 34% worse than the rest — to
+explain the gap. That is a large number, and nothing here rules it out: three days is
+easily enough to contain a heat event or a holiday. Equally, the model may simply be
+worse. **The measurement cannot distinguish these, which is the finding.**
+
+Comparing a fresh candidate against an incumbent's *recorded* score is only sound when
+the evaluation set is identical. Here it drifts every time the data grows, which is
+every run.
+
+### Why this is not fixed by scoring the champion again
+
+The obvious repair — load the champion and score it on the candidate's holdout — swaps
+one bias for another. The registered artifact is the **served** model, trained on all
+data including the holdout (that is why D-37's `is_in_sample` flag exists), while the
+candidate is judged by a **gate** model trained only on `train`. Scoring them on the
+same rows would compare an in-sample model against an out-of-sample one and promote
+almost nothing, ever.
+
+The sound repair is to refit the incumbent's gate on the incumbent's training window at
+comparison time and score both on one holdout — deterministic, and one extra fit per
+month. The alternative is a closed evaluation window that does not move between refits.
+
+Neither is applied yet. This is a decision about how models get promoted, not a bug fix,
+and it is recorded here rather than made quietly.
+
+### Consequence for the cleanup
+
+`bundle destroy` on the old user path stays unsafe: `@champion` is still v2 and the
+forecast task reads `client.get_run(mv.run_id)` against a run that lives there. The tie
+breaks when a candidate is promoted — on a comparison worth trusting.
