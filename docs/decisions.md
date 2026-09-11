@@ -1777,3 +1777,86 @@ experiment that lives there; deleting the folder now would take the run with it.
 tie breaks on its own at the next `energy_monthly_refit`, which logs to the declared
 experiment and registers a version whose lineage is in a place that does not move.
 Recorded here so the cleanup is done in the right order rather than discovered.
+
+## D-41 Deployment leaves the laptop — and the subject GitHub actually sends
+
+`cd-dev.yml` deploys on merge to `main` and runs the pipeline only on manual dispatch.
+Authentication is the OIDC federation from D-40; no secret exists on either side.
+
+### The documented subject is not the subject
+
+The plan, and Azure's documentation, give the federated credential subject as
+`repo:<owner>/<repo>:ref:refs/heads/main`. The first run failed:
+
+```
+AADSTS700213: No matching federated identity record found for presented assertion
+subject 'repo:KhangLe0411@120442283/pjm-demand-lakehouse@1365477962:ref:refs/heads/main'
+```
+
+The repository issues **immutable** subjects — owner and repository carry their numeric
+ids, not their names:
+
+```
+$ gh api repos/OWNER/REPO/actions/oidc/customization/sub
+{"use_default":true,"use_immutable_subject":true,
+ "sub_claim_prefix":"repo:KhangLe0411@120442283/pjm-demand-lakehouse@1365477962"}
+```
+
+Both credentials were rewritten from `sub_claim_prefix` rather than from either
+documented shape. It is the better form anyway: a rename changes the names and not the
+ids, so the trust survives one. But it is only discoverable by reading what the token
+actually carries — the error message was the first place the real subject appeared.
+
+### The identity is asserted before anything is deployed
+
+D-40 found the CLI reporting success as the wrong identity, `bundle validate` included.
+`DATABRICKS_AUTH_TYPE` is therefore explicit, and a step compares `current-user me`
+against the expected application id and fails the job on a mismatch. The alternative is
+trusting that the authentication that has already silently misfired once will not do it
+again on a machine where nobody is watching.
+
+### Asserting the output, not the exit code
+
+A run can terminate `SUCCESS` having written nothing: Auto Loader finds no new files, a
+join drops every row, an upstream page comes back empty. Every task already exited a
+JSON summary and nothing read it. `scripts/check_run.py` turns those into
+post-conditions — rows fetched, tables non-empty, features labelled, leakage violations
+zero **over a non-zero number of pairs**, since zero-over-zero is a vacuous pass that
+reads identically to a real one in a log.
+
+Its failure paths never execute in normal operation, which is precisely why they are
+unit-tested against synthetic payloads rather than trusted.
+
+Two details in the step that runs it:
+
+* `set -o pipefail` — `bundle run | tee` otherwise returns tee's status, and a failed
+  pipeline reports success.
+* The run id is taken from the CLI's own `Run URL:` line, not from "the job's most
+  recent run". The latter is a race with anyone running dev by hand.
+
+### Dev hit the same wall as prod, which is the point
+
+The first dispatched run failed in `forecast` with the same `aclPath` error D-40
+diagnosed — `energy_dev`'s champion also pointed at a run in a notebook-backed
+experiment under a user path. That it recurred in a second environment is evidence the
+cause was structural rather than a one-off: **an experiment MLflow creates by default is
+a child of wherever the notebook was deployed.** Both environments now have the bridge
+grant, and both will move to the declared experiment at their next refit.
+
+### What CI deploying `dev` actually creates
+
+`mode: development` namespaces per deployer, so CI's deployment is its own sandbox
+alongside the laptop's:
+
+```
+[dev 20133050]      energy_daily_pipeline    782233663273637
+[dev sp_energy_cicd] energy_daily_pipeline   271871895124838
+energy_daily_pipeline                        646154696850115   <- prod, run_as the SP
+```
+
+The jobs and workspace paths are separate; `catalog`, `landing_root` and
+`checkpoint_root` are not — both dev deployments address `energy_dev` and one
+`_checkpoints_dev`. Two Auto Loader streams on one checkpoint conflict. That surfaces as
+an error rather than silent data loss, so it is not the hazard D-39 describes, but it is
+the second reason the run is not automatic on merge — the first being that five minutes
+of serverless per merge is a real invoice on a student credit.

@@ -187,11 +187,19 @@ No `DATABRICKS_TOKEN` in repository secrets. A PAT in a secret is the thing this
 replaces: it does not expire on its own, it survives the person who made it, and it
 reads the same in a log as any other string.
 
-Federated credential subject, scoped per environment so a PR cannot deploy prod:
+Federated credential subject, scoped per environment so a PR cannot deploy prod. Note
+the numeric ids: this repository issues **immutable** subjects, so the owner and repo
+carry their ids rather than their names. The documented `repo:owner/name:...` form is
+rejected. Read it from the repo instead of assuming either shape:
+
+```bash
+gh api repos/OWNER/REPO/actions/oidc/customization/sub --jq .sub_claim_prefix
+```
+
 
 ```
-repo:KhangLe0411/pjm-demand-lakehouse:environment:prod   # cd-prod
-repo:KhangLe0411/pjm-demand-lakehouse:ref:refs/heads/main  # cd-dev
+repo:KhangLe0411@120442283/pjm-demand-lakehouse@1365477962:environment:prod   # cd-prod
+repo:KhangLe0411@120442283/pjm-demand-lakehouse@1365477962:ref:refs/heads/main  # cd-dev
 ```
 
 ---

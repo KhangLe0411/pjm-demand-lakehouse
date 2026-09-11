@@ -92,17 +92,22 @@ jobs:
         run: databricks bundle deploy -t dev
 
       - name: Run the dev pipeline
+        id: run
         if: inputs.run_pipeline
-        run: databricks bundle run energy_daily_pipeline -t dev
+        run: |
+          # pipefail, or `tee` returns 0 and a failed pipeline reports success.
+          set -o pipefail
+          databricks bundle run energy_daily_pipeline -t dev | tee run.log
+          # The CLI prints `Run URL: .../#job/<job>/run/<run>`. Taking the id from
+          # there identifies the run this step started. Asking the API for the job's
+          # most recent run instead would be a race with anyone running dev by hand.
+          run_id=$(grep -oE '#job/[0-9]+/run/[0-9]+' run.log | tail -1 | sed 's|.*/run/||')
+          [ -n "$run_id" ] || { echo "::error::could not read a run id from the CLI output"; exit 1; }
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
 
       # A job that terminates SUCCESS having written nothing reads identically to one
       # that worked. This reads each task's own JSON exit value and asserts the numbers
       # are non-trivial.
       - name: Assert the run produced data
         if: inputs.run_pipeline
-        run: |
-          job_id=$(databricks bundle summary -t dev --output json \
-            | python -c 'import json,sys; print(json.load(sys.stdin)["resources"]["jobs"]["energy_daily_pipeline"]["id"])')
-          run_id=$(databricks jobs list-runs --job-id "$job_id" --limit 1 --output json \
-            | python -c 'import json,sys; print(json.load(sys.stdin)[0]["run_id"])')
-          python scripts/check_run.py "$run_id"
+        run: python scripts/check_run.py "${{ steps.run.outputs.run_id }}"
