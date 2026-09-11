@@ -55,6 +55,7 @@ import mlflow                                                  # noqa: E402
 import pandas as pd                                            # noqa: E402
 from src.features.spec import FEATURES_MODEL_B                 # noqa: E402
 from src.ml.models import LABEL, XGBModel                      # noqa: E402
+from src.ml import evaluate as ev                              # noqa: E402
 from src.ml import registry as reg                             # noqa: E402
 
 mlflow.set_registry_uri("databricks-uc")
@@ -81,19 +82,43 @@ print(f"train {len(train):,} rows (< {cut.date()}) · holdout {len(holdout):,} r
 # COMMAND ----------
 
 feats = [s.name for s in FEATURES_MODEL_B]
-
-# 1. Gate model — train-only, scored out-of-sample. Never served.
-gate = XGBModel(name="xgb_b_gate", features=feats).fit(train)
 scored = holdout.dropna(subset=[LABEL])
-err = gate.predict(scored) - scored[LABEL]
-metrics = {
-    reg.GATE_METRIC: float(err.abs().mean()),
-    "gate_holdout_mape_pct": float(100 * (err.abs() / scored[LABEL].abs()).mean()),
-    # Signed, because drift shows up as bias long before it shows up as MAE (D-29).
-    "gate_holdout_bias": float(err.mean()),
-    "gate_holdout_rows": float(len(scored)),
-}
-print("gate:", metrics)
+
+# 1. Candidate gate — train-only, scored out-of-sample. Never served.
+metrics = ev.gate_score(train, scored, feats)
+print("candidate gate:", metrics)
+
+# 1b. Incumbent gate, refitted on the window the champion's gate saw and scored on the
+# SAME rows. Previously this compared against the champion's *recorded* score, which
+# was measured on a different holdout — the window starts at a fixed month boundary and
+# ends wherever the data does, so every refit scores on a superset of the last one. The
+# first time it mattered, 7.5% of the rows differed and the gate declined a candidate on
+# a gap it could not attribute to the model (D-43).
+champion_cutoff = reg.champion_training_cutoff(NAME)   # None = no champion yet
+candidate_cutoff = str(train["forecast_date"].max().date())
+basis = reg.describe_comparison(candidate_cutoff, champion_cutoff)
+if champion_cutoff is None:
+    incumbent = None
+    print("no champion: promotion is unconditional")
+else:
+    incumbent_train = df[df["forecast_date"] <= pd.Timestamp(champion_cutoff)]
+    # The property that makes the comparison clean, asserted rather than assumed: the
+    # champion's training window ends before this holdout begins, so re-fitting it here
+    # cannot score partly in-sample. It holds because `cut` only moves forward — which
+    # is exactly the kind of reasoning that stops holding after an innocuous edit.
+    assert incumbent_train["forecast_date"].max() < cut, (
+        f"champion trained through {champion_cutoff}, which is inside this holdout "
+        f"(from {cut.date()}) — the comparison would be in-sample for the incumbent")
+    incumbent_metrics = ev.gate_score(incumbent_train, scored, feats)
+    incumbent = incumbent_metrics[reg.GATE_METRIC]
+    print(f"incumbent gate (refit through {champion_cutoff}):", incumbent_metrics)
+
+if not basis.informative:
+    print(f"\n!! comparison carries no information — {basis.description}")
+    print("   promotion below rests on the served model having more labelled data,")
+    print("   not on the gate having distinguished anything.\n")
+else:
+    print(f"comparison: {basis.description}")
 
 # 2. Served model — all labelled data, including the holdout. This is what gets
 # registered. Under drift the most recent months carry the most information, which is
@@ -123,6 +148,12 @@ info, run_id = reg.log_and_register(
         "gate_model_trained_through": str(train["forecast_date"].max().date()),
         "served_model_max_label_ts": str(max_label_ts),
         "metric_describes": "gate model, not the served artifact",
+        # What the promotion decision was actually made against, so it can be audited
+        # without re-deriving it. "recorded" is what D-43 replaced.
+        "comparison_basis": basis.description,
+        "comparison_informative": str(basis.informative),
+        "incumbent_gate_trained_through": str(champion_cutoff),
+        "incumbent_gate_mae": "none" if incumbent is None else f"{incumbent:.4f}",
     },
 )
 version = str(info.registered_model_version)
@@ -130,7 +161,6 @@ print(f"registered {NAME} version {version}")
 
 # COMMAND ----------
 
-incumbent = reg.champion_metric(NAME)
 verdict = reg.decide_promotion(metrics[reg.GATE_METRIC], incumbent, tolerance_pct=TOL)
 print(verdict)
 if verdict.promote:
@@ -143,6 +173,7 @@ else:
 
 import json  # noqa: E402
 out = {"model": NAME, "version": version, "promoted": verdict.promote,
+       "comparison_informative": basis.informative,
        "reason": verdict.reason, **{k: round(v, 3) for k, v in metrics.items()}}
 print(json.dumps(out, indent=2))
 dbutils.notebook.exit(json.dumps(out))

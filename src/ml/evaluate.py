@@ -10,9 +10,41 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from src.ml.models import LABEL
+from src.ml.models import LABEL, XGBModel
 
 MODEL_ORDER = ["seasonal_naive", "eia_df", "xgb_a", "xgb_b"]
+
+
+def gate_score(train: pd.DataFrame, scored: pd.DataFrame,
+               features: list[str], *, name: str = "xgb_b_gate") -> dict[str, float]:
+    """Fit a gate model on `train` and score it on `scored`.
+
+    One function because it is called twice — once for the candidate and once for the
+    incumbent — and the promotion decision is only meaningful if both numbers were
+    produced identically. When those were two separate code paths the comparison was
+    against a score recorded months earlier on a *different* holdout, which is how the
+    gate came to decline a candidate for a difference it could not attribute to the
+    model (D-43).
+
+    `scored` must already be label-complete; passing rows with a null label would make
+    the denominators disagree between the two calls.
+    """
+    if train.empty:
+        raise ValueError("gate_score: empty training frame")
+    if scored.empty:
+        raise ValueError("gate_score: empty evaluation frame")
+    if scored[LABEL].isna().any():
+        raise ValueError("gate_score: evaluation frame contains unlabelled rows")
+
+    model = XGBModel(name=name, features=features).fit(train)
+    err = model.predict(scored) - scored[LABEL]
+    return {
+        "gate_holdout_mae": float(err.abs().mean()),
+        "gate_holdout_mape_pct": float(100 * (err.abs() / scored[LABEL].abs()).mean()),
+        # Signed, because drift shows up as bias long before it shows up as MAE (D-29).
+        "gate_holdout_bias": float(err.mean()),
+        "gate_holdout_rows": float(len(scored)),
+    }
 
 
 def _agg(g: pd.DataFrame) -> pd.Series:

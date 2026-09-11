@@ -34,10 +34,14 @@ CHAMPION = "champion"
 #   served model  all data    -> what actually gets predictions, ~9% better MAE here
 #
 # Registering only the gate model was tried first and measured: it cost +9.1% MAE,
-# because with drift the withheld months are the ones that matter (D-29, D-37). The
-# metric is compared like-for-like across versions, so the gate stays valid.
+# because with drift the withheld months are the ones that matter (D-29, D-37).
+#
+# This line used to claim the metric "is compared like-for-like across versions". It was
+# not: the incumbent's number came from its own run, measured on the holdout as it stood
+# then, and the holdout grows with the data. It is like-for-like now because the
+# incumbent's gate is refitted and re-scored on the candidate's holdout at decision time
+# — see `champion_training_cutoff` and D-43. The metric name alone never guaranteed it.
 GATE_METRIC = "gate_holdout_mae"
-LEGACY_GATE_METRIC = "holdout_mae"
 
 
 class DemandForecaster(mlflow.pyfunc.PythonModel):
@@ -84,6 +88,42 @@ class PromotionVerdict:
         c = "n/a" if self.champion_mae is None else f"{self.champion_mae:,.1f}"
         return (f"{'PROMOTE' if self.promote else 'HOLD'} — {self.reason} "
                 f"(candidate {self.candidate_mae:,.1f} vs champion {c})")
+
+
+@dataclass(frozen=True)
+class ComparisonBasis:
+    informative: bool
+    description: str
+
+
+def describe_comparison(candidate_trained_through: str,
+                        incumbent_trained_through: str | None) -> ComparisonBasis:
+    """Whether the gate comparison can distinguish the two models at all.
+
+    Refitting the incumbent on its own window and scoring it on the candidate's holdout
+    (D-43) makes the two numbers comparable. It does not make them *different*: the
+    holdout begins at a month boundary, so `train` is everything before that boundary,
+    and two refits in the same month train the identical gate on the identical rows.
+    The scores then match to every decimal and the gate reports "within 2%" — which is
+    true, and carries no information.
+
+    On the monthly schedule this does not arise: each run falls in a new month and the
+    boundary moves. It arises when someone refits by hand mid-month, which is exactly
+    when a reassuring message is least deserved. Promotion still proceeds — the served
+    model has strictly more labelled data and nothing argues against it — but it is
+    recorded as an absence of evidence, not as evidence.
+    """
+    if incumbent_trained_through is None:
+        return ComparisonBasis(False, "no champion yet — promotion is unconditional")
+    if incumbent_trained_through == candidate_trained_through:
+        return ComparisonBasis(
+            False,
+            "degenerate: the incumbent gate has the same training window "
+            f"(through {candidate_trained_through}), so both gates are the same model")
+    return ComparisonBasis(
+        True,
+        f"incumbent gate refitted through {incumbent_trained_through}, "
+        f"candidate through {candidate_trained_through}, scored on the same holdout")
 
 
 def decide_promotion(candidate_mae: float, champion_mae: float | None,
@@ -167,19 +207,22 @@ def log_and_register(model, train: pd.DataFrame, *, run_name: str,
     return info, run.info.run_id
 
 
-def champion_metric(registered_name: str = REGISTERED_NAME,
-                    metric: str = GATE_METRIC,
-                    alias: str = CHAMPION) -> float | None:
-    """The champion's gate score, or None if no champion is set.
+def champion_training_cutoff(registered_name: str = REGISTERED_NAME,
+                             alias: str = CHAMPION) -> str | None:
+    """The last `forecast_date` the champion's gate model was trained on.
 
-    Read from the run that produced the aliased version rather than recomputed, so the
-    comparison is against what that model actually scored.
+    Returned so the incumbent can be re-fitted on its own window and scored on the same
+    holdout as the candidate. Comparing against its *recorded* score instead was unsound
+    for a reason that only showed up once the data grew: the holdout starts at a fixed
+    month boundary and ends wherever the data does, so each refit scores on a superset
+    of the previous one. 7.5% of the rows differed the first time it mattered — enough
+    to account for the entire gap the gate rejected on (D-43).
 
-    Falls back to `holdout_mae` for versions registered before the rename. That is not
-    a shim papering over a changed meaning — the quantity is identical, only the name
-    became clearer — and it can be dropped once those versions are superseded.
+    `None` means there is no champion, which promotes unconditionally. A champion
+    *without* the parameter raises instead: it was registered before this was recorded,
+    so an honest comparison is not available, and silently falling back to the recorded
+    score would reintroduce exactly the bias this replaces.
     """
-    import mlflow
     from mlflow.exceptions import MlflowException
 
     client = mlflow.MlflowClient()
@@ -187,12 +230,13 @@ def champion_metric(registered_name: str = REGISTERED_NAME,
         mv = client.get_model_version_by_alias(registered_name, alias)
     except (MlflowException, Exception):
         return None
-    try:
-        run = client.get_run(mv.run_id)
-    except Exception:
-        return None
-    m = run.data.metrics
-    return m.get(metric, m.get(LEGACY_GATE_METRIC))
+    cutoff = client.get_run(mv.run_id).data.params.get("gate_model_trained_through")
+    if cutoff is None:
+        raise RuntimeError(
+            f"{registered_name}@{alias} (v{mv.version}) has no "
+            "`gate_model_trained_through` param, so its gate model cannot be refitted "
+            "for a like-for-like comparison. Register a version that records it.")
+    return cutoff
 
 
 def set_champion(registered_name: str, version: str, alias: str = CHAMPION) -> None:

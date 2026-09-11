@@ -2017,3 +2017,59 @@ and it is recorded here rather than made quietly.
 `bundle destroy` on the old user path stays unsafe: `@champion` is still v2 and the
 forecast task reads `client.get_run(mv.run_id)` against a run that lives there. The tie
 breaks when a candidate is promoted — on a comparison worth trusting.
+
+## D-44 The comparison is fixed — and it proved the rejection was an artifact
+
+`gate_score` is now one function called twice: once for the candidate, once for the
+incumbent refitted on its own training window and scored on **the same holdout rows**.
+One function because two code paths is how the two sides drifted apart in the first
+place.
+
+```
+champion_training_cutoff()  -> the champion's `gate_model_trained_through`
+incumbent_train = df[forecast_date <= that]        # asserted to end before the holdout
+incumbent_mae   = gate_score(incumbent_train, scored, feats)[GATE_METRIC]
+candidate_mae   = gate_score(train,           scored, feats)[GATE_METRIC]
+```
+
+`champion_metric` and `LEGACY_GATE_METRIC` were deleted rather than left alongside.
+Their docstring described the approach this replaces — the next person to need "the
+champion's score" would have found exactly the wrong function. A comment in `registry.py`
+claiming the metric "is compared like-for-like across versions" was corrected too: it
+was not true when written, and it is true now for a reason the metric's *name* never
+provided.
+
+### The dev run settled D-43's open question
+
+D-43 could not say whether v3 was genuinely worse or whether the three extra holdout
+days were harder. With the incumbent re-scored on the identical 960 rows, it can:
+
+```
+same gate model, two row sets
+  on 888 rows -> 3409.0      (what the champion's run recorded)
+  on 960 rows -> 3497.2      (what it scores on the candidate's holdout)
+=> the 72 added rows carry MAE 4584, +34% on the rest
+```
+
+D-43 predicted 4584 as the figure that *would* be required to explain the gap, and 4584
+is what it is. The candidate was never worse. **The entire 2.59% that the gate rejected
+on was the evaluation set changing underneath it.** The decision flipped to promote.
+
+### And the fix exposed a case of its own
+
+The recomputed incumbent MAE was `3497.1968` — equal to the candidate's to ten
+significant figures. Not a coincidence: the holdout starts at a month boundary, so
+`train` is everything before that boundary, and two refits inside one month fit the
+identical gate on the identical rows. The comparison is sound and carries no
+information; the gate reports "within 2% of champion", which is true and worthless.
+
+On the monthly schedule (`0 0 3 1 * ?`) it does not arise — each run falls in a new
+month and the boundary moves. It arises on a manual mid-month refit, which is exactly
+when a reassuring message is least deserved.
+
+Promotion still proceeds: the served model has strictly more labelled data and nothing
+argues against it. But `describe_comparison` now labels it, the notebook prints a loud
+warning, and `comparison_informative: false` rides in the run output and the registered
+version's params. The distinction being kept is between *evidence of no difference* and
+*no evidence* — the gate exists to stop a refit being assumed an improvement (D-29), and
+a gate that reports absence of information as reassurance has quietly resumed assuming.

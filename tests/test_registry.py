@@ -9,8 +9,9 @@ import pytest
 
 from src.ml.models import LABEL, XGBModel
 from src.ml.registry import (
-    champion_metric,
+    champion_training_cutoff,
     decide_promotion,
+    describe_comparison,
     load_champion,
     log_and_register,
     set_champion,
@@ -73,15 +74,19 @@ def test_tolerance_band_stops_the_alias_random_walking():
 def test_registering_does_not_promote(store):
     df = frame()
     info, _ = log_and_register(fitted(df), df, run_name="v1", registered_name=NAME,
-                               extra_metrics={"gate_holdout_mae": 500.0})
+                               extra_metrics={"gate_holdout_mae": 500.0},
+                               extra_params={"gate_model_trained_through": "2026-07-31"})
     assert str(info.registered_model_version) == "1"
     # An alias has to be set deliberately; registering alone must not serve anything.
-    assert champion_metric(NAME) is None
+    assert champion_training_cutoff(NAME) is None
 
 
-def test_champion_metric_reads_the_aliased_version(store):
+def test_champion_training_cutoff_reads_the_aliased_version(store):
+    """What the incumbent's gate is refitted on. Read from the aliased version's run,
+    so promoting a different version changes what the next candidate is measured
+    against."""
     set_champion(NAME, "1")
-    assert champion_metric(NAME) == pytest.approx(500.0)
+    assert champion_training_cutoff(NAME) == "2026-07-31"
 
 
 def test_round_trip_predicts_the_same_values(store):
@@ -121,13 +126,39 @@ def test_extra_columns_are_ignored(store):
     np.testing.assert_allclose(loaded.predict(wide), loaded.predict(df), rtol=1e-9)
 
 
-def test_legacy_metric_name_is_still_read(store):
-    """Versions registered before the rename carry `holdout_mae`. The quantity is
-    identical — only the name became clearer — so the gate must still find it, or the
-    first refit after the rename would promote blindly, which is the one thing the gate
-    exists to prevent."""
+def test_a_champion_without_a_training_window_refuses_to_compare(store):
+    """A champion registered before the training window was recorded cannot be refitted,
+    so no honest comparison exists for it. That must raise rather than fall back to the
+    recorded score — falling back is precisely the bias D-43 removed, and it would
+    return silently, at the moment the gate is deciding what to serve."""
     df = frame(seed=5)
     log_and_register(fitted(df), df, run_name="legacy", registered_name=NAME,
-                     extra_metrics={"holdout_mae": 442.0})
+                     extra_metrics={"gate_holdout_mae": 442.0})
     set_champion(NAME, "3")
-    assert champion_metric(NAME) == pytest.approx(442.0)
+    with pytest.raises(RuntimeError, match="gate_model_trained_through"):
+        champion_training_cutoff(NAME)
+
+
+# ------------------------------------------------------- is the comparison informative
+
+def test_the_same_training_window_is_reported_as_carrying_no_information():
+    """Two refits in one month train the gate on identical rows, so the scores match to
+    every decimal and the gate says "within 2%". True, and worth nothing — the dev run
+    that exposed this returned an incumbent MAE equal to the candidate's to ten
+    significant figures."""
+    basis = describe_comparison("2026-07-31", "2026-07-31")
+    assert basis.informative is False
+    assert "same training window" in basis.description
+
+
+def test_a_moved_training_window_is_reported_as_informative():
+    basis = describe_comparison("2026-08-31", "2026-07-31")
+    assert basis.informative is True
+    assert "2026-07-31" in basis.description and "2026-08-31" in basis.description
+
+
+def test_no_champion_is_not_an_informative_comparison():
+    """Nothing was weighed. Promotion is right — something must be served — but calling
+    it evidence would be a lie told at the moment a model starts serving."""
+    basis = describe_comparison("2026-08-31", None)
+    assert basis.informative is False
