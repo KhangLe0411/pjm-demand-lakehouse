@@ -1,0 +1,88 @@
+name: CD prod
+
+# Prod deploys from a tag, never from a branch.
+#
+# A branch moves. An approval recorded against `main` names a commit that may no longer
+# be there by the time anyone reads the audit trail; an approval recorded against `v1.2`
+# names exactly what was deployed, permanently. The GitHub Environment enforces this
+# rather than trusting the trigger: its deployment policy admits `v*` tags and nothing
+# else, so a workflow edited to fire on `push: branches` would still be refused the
+# environment — and with it the OIDC token, whose subject is `…:environment:prod`.
+#
+# Break-glass is a tag, not an exception: `git tag v0.0.1 && git push --tags`.
+on:
+  push:
+    tags: ['v*']
+
+# Never cancel a deploy mid-flight. Grouped by target, so two tags pushed together
+# queue rather than race for the same bundle state.
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # The approval gate. A reviewer must accept before any step below runs, and the
+    # federated credential for prod only matches a token minted for this environment,
+    # so the approval is not merely procedural — without it there is no credential.
+    environment: prod
+
+    env:
+      DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+      DATABRICKS_AUTH_TYPE: azure-cli      # see cd-dev.yml; D-40 explains why
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.ARM_CLIENT_ID }}
+          tenant-id: ${{ secrets.ARM_TENANT_ID }}
+          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+      - uses: databricks/setup-cli@v0.299.0
+
+      - name: Confirm the identity is the service principal
+        env:
+          EXPECTED: ${{ secrets.ARM_CLIENT_ID }}
+        run: |
+          who=$(databricks current-user me --output json \
+            | python -c 'import json,sys; print(json.load(sys.stdin)["userName"])')
+          echo "authenticated as: $who"
+          [ "$who" = "$EXPECTED" ] \
+            || { echo "::error::expected the service principal, got $who"; exit 1; }
+
+      - name: Validate
+        run: databricks bundle validate -t prod
+
+      - name: Deploy
+        run: databricks bundle deploy -t prod
+
+      # `bundle deploy` reports success per resource, not per property. This compares
+      # the live jobs against what the bundle declares: run_as still the service
+      # principal, schedules in the state the repository asks for, and every task
+      # notebook inside this deployment's root rather than a path left behind by an
+      # earlier one.
+      - name: Smoke test the deployment
+        run: python scripts/check_deploy.py --target prod
+
+      # No automatic prod run. The schedule owns that, and it is PAUSED until someone
+      # decides otherwise — a deploy is not the moment to make that decision.
+      - name: Record what was deployed
+        run: |
+          echo "### Deployed \`${{ github.ref_name }}\` to prod" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          databricks bundle summary -t prod >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

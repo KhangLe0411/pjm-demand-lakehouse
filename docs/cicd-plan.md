@@ -158,19 +158,37 @@ finds no new files, a join drops every row — and the run looks identical to on
 worked. Its failure paths are unit-tested with synthetic payloads, because in normal
 operation they never execute.
 
-### `cd-prod.yml` — on tag `v*`
+### `cd-prod.yml` — on tag `v*` — **done**
 
 ```
-environment: prod          # GitHub Environment with a required reviewer
-databricks bundle deploy -t prod
-smoke: bundle summary + assert the job exists and is PAUSED
+environment: prod          # required reviewer; deployment policy admits v* tags only
+databricks bundle validate -t prod
+databricks bundle deploy   -t prod
+python scripts/check_deploy.py --target prod
 ```
 
 The approval gate is a GitHub Environment reviewer, not a branch rule. Deploying prod
 should require a person, and the audit trail should record which one.
 
+**A tag, never a branch.** A branch moves, so an approval recorded against `main` names
+a commit that may not be there when someone reads the trail later; an approval against
+`v1.2` names exactly what shipped. The environment's deployment policy enforces it
+rather than the trigger doing so on trust: it admits `v*` and nothing else, so a
+workflow edited to fire on a branch would still be refused the environment — and with
+it the OIDC token, whose subject is `…:environment:prod`. The gate is the credential,
+not just a dialog.
+
+**The smoke test compares rather than asserts absolutes.** `bundle deploy` reports
+success per resource, not per property, and several unintended states survive it: a job
+deployed without `run_as` runs as whoever deployed it, a schedule can be live when the
+repository says `PAUSED`, and task notebooks can point at a path the bundle no longer
+owns — which is how prod carried an orphaned user path from D-35 to D-40 with every
+build green. `check_deploy.py` therefore diffs the live jobs against the declared
+config. A hard-coded "must be PAUSED" would go stale the day someone deliberately
+unpauses it, and a gate that cries wolf gets switched off.
+
 No automatic prod run. The schedule owns that, and it stays `PAUSED` until someone
-decides otherwise.
+decides otherwise — a deploy is not the moment to make that decision.
 
 ---
 
@@ -179,8 +197,13 @@ decides otherwise.
 ```
 GitHub Actions  --OIDC-->  Entra ID federated credential
                            └─> sp-energy-cicd
-                               ├─ Storage Blob Data Contributor on container energy
-                               └─ Databricks service principal (workspace + UC grants)
+                               ├─ Reader on the Databricks workspace — and no
+                               │  storage role at all: jobs reach ADLS through the
+                               │  UC external location, whose credential is the
+                               │  access connector (D-40)
+                               └─ Databricks service principal
+                                  (workspace + UC + external location + secret
+                                   scope + job ownership — five securables)
 ```
 
 No `DATABRICKS_TOKEN` in repository secrets. A PAT in a secret is the thing this
