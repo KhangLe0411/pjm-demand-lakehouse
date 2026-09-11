@@ -1,0 +1,108 @@
+name: CD dev
+
+# Deploy on merge; do not run on merge.
+#
+# A full dev pipeline is ~5 minutes of serverless compute. On a student credit, twenty
+# merges in a day is a real number and a real invoice. The deploy itself is the
+# merge-time signal — it catches what actually breaks between merges: a renamed
+# notebook, a malformed job YAML, a dependency that no longer resolves. Running the
+# pipeline is a separate, deliberate act.
+#
+# It is also an isolation point. `mode: development` namespaces the jobs and the
+# workspace path per deployer, but `catalog`, `landing_root` and `checkpoint_root` are
+# plain variables — CI's dev deployment and a laptop's point at the same `energy_dev`
+# and the same `_checkpoints_dev`. Two Auto Loader streams on one checkpoint at once
+# conflict. That fails loudly rather than silently, but it is a reason not to have the
+# run fire unattended on every merge.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_pipeline:
+        description: Also run the dev pipeline and assert its output
+        type: boolean
+        default: false
+
+# Never cancel a deploy mid-flight: cancelling a build costs a rerun, cancelling a
+# half-written bundle state costs a manual repair. Grouped by target rather than by
+# ref, because two merges landing together are two deploys to the same place.
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write      # the OIDC token; the only credential involved
+
+env:
+  DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+  # Explicit, and not a formality. With this unset the CLI resolves whatever identity
+  # it can find first and reports success as that identity — during D-40 it silently
+  # authenticated as a human twice, including through `bundle validate`, which printed
+  # `Validation OK!`. An identity bug that prints OK is the expensive kind.
+  DATABRICKS_AUTH_TYPE: azure-cli
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # OIDC: GitHub mints a short-lived token, Entra trades it for one of its own
+      # against the federated credential whose subject is this repo's `main`. No secret
+      # is stored on either side — `secrets.ARM_*` are identifiers, not credentials.
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.ARM_CLIENT_ID }}
+          tenant-id: ${{ secrets.ARM_TENANT_ID }}
+          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+      - uses: databricks/setup-cli@v0.299.0
+
+      # Asserted, not printed. See DATABRICKS_AUTH_TYPE above: the failure this guards
+      # against looks exactly like success.
+      - name: Confirm the identity is the service principal
+        # The expected value arrives through env rather than being interpolated into
+        # the script: `${{ }}` substitution happens before the shell sees the line, so
+        # anything it expands to is executed as source.
+        env:
+          EXPECTED: ${{ secrets.ARM_CLIENT_ID }}
+        run: |
+          who=$(databricks current-user me --output json \
+            | python -c 'import json,sys; print(json.load(sys.stdin)["userName"])')
+          echo "authenticated as: $who"
+          [ "$who" = "$EXPECTED" ] \
+            || { echo "::error::expected the service principal, got $who"; exit 1; }
+
+      # Moved here from ci.yml deliberately: it authenticates against the workspace, so
+      # it cannot run in a workflow triggered by pull requests without giving fork PRs
+      # a path to the workspace.
+      - name: Validate
+        run: databricks bundle validate -t dev
+
+      - name: Deploy
+        run: databricks bundle deploy -t dev
+
+      - name: Run the dev pipeline
+        if: inputs.run_pipeline
+        run: databricks bundle run energy_daily_pipeline -t dev
+
+      # A job that terminates SUCCESS having written nothing reads identically to one
+      # that worked. This reads each task's own JSON exit value and asserts the numbers
+      # are non-trivial.
+      - name: Assert the run produced data
+        if: inputs.run_pipeline
+        run: |
+          job_id=$(databricks bundle summary -t dev --output json \
+            | python -c 'import json,sys; print(json.load(sys.stdin)["resources"]["jobs"]["energy_daily_pipeline"]["id"])')
+          run_id=$(databricks jobs list-runs --job-id "$job_id" --limit 1 --output json \
+            | python -c 'import json,sys; print(json.load(sys.stdin)[0]["run_id"])')
+          python scripts/check_run.py "$run_id"

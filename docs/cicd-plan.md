@@ -122,22 +122,41 @@ machine never will:
 * no `.cache()` / `.persist()` anywhere in `src/` — unsupported on serverless (D-34)
 * notebooks parse, declare the Databricks header, and hard-code no catalog (D-35)
 
-### `cd-dev.yml` — on merge to `main`
+### `cd-dev.yml` — on merge to `main` — **done**
 
 ```
-<everything in ci.yml>
-databricks bundle deploy -t dev
-databricks bundle run energy_daily_pipeline -t dev     # gated, see below
-assert leakage violations == 0 and row counts > 0
+azure/login (OIDC)  ->  assert the identity is the SP
+databricks bundle validate -t dev
+databricks bundle deploy  -t dev
+databricks bundle run energy_daily_pipeline -t dev     # workflow_dispatch only
+python scripts/check_run.py <run_id>                   # asserts the output, not the exit code
 ```
 
 **Deploy on merge; do not run on merge.** A full dev run is ~5 minutes of serverless
 compute. On a $100 student credit, twenty merges a day is a real number. Run on manual
-dispatch or nightly instead, and let the deploy itself be the merge-time signal.
+dispatch instead, and let the deploy itself be the merge-time signal.
 
 This is a genuine production trade rather than a shortcut: teams with a cost ceiling
-make exactly this call, and the alternative — running everything on every merge —
-is what produces a surprise invoice.
+make exactly this call, and the alternative — running everything on every merge — is
+what produces a surprise invoice.
+
+A second reason emerged while writing it. `mode: development` namespaces the *jobs* and
+the *workspace path* per deployer, but `catalog`, `landing_root` and `checkpoint_root`
+are ordinary variables — CI's dev deployment and a laptop's address the same
+`energy_dev` and the same `_checkpoints_dev`. Two Auto Loader streams on one checkpoint
+conflict. It fails loudly rather than silently, so it is not the hazard D-39 described,
+but it is a reason not to let the run fire unattended.
+
+**The identity is asserted, not assumed.** D-40 found the CLI reporting success as the
+wrong identity, `bundle validate` included. The workflow sets `DATABRICKS_AUTH_TYPE`
+explicitly and then checks `current-user me` against the expected application id before
+it deploys anything.
+
+**`check_run.py` asserts what the run produced.** Every task exits a JSON summary and
+nothing read it. A pipeline can terminate SUCCESS having written nothing — Auto Loader
+finds no new files, a join drops every row — and the run looks identical to one that
+worked. Its failure paths are unit-tested with synthetic payloads, because in normal
+operation they never execute.
 
 ### `cd-prod.yml` — on tag `v*`
 
