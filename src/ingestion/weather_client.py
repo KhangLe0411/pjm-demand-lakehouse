@@ -189,6 +189,30 @@ def month_chunks(start: date, end: date, months: int = 6):
         cur = stop + timedelta(days=1)
 
 
+def run_extract(start: date, end: date, root: Path,
+                run_ts: datetime | None = None) -> tuple[int, int]:
+    """Fetch and land a date range. Returns (rows, files).
+
+    Extracted so the notebook task and the CLI share one code path — a notebook that
+    reimplemented this loop would drift from the version the tests cover, and the
+    drift would not announce itself.
+    """
+    run_ts = run_ts or datetime.now(timezone.utc).replace(microsecond=0)
+    print(f"points={len(PJM_POINTS)} leads={LEADS} vars={len(VARIABLES)}")
+    print(f"range {start} -> {end}   run_ts={run_ts.isoformat()}")
+    print(f"note: variables other than temperature start at {RICH_START} (D-21)")
+    total_rows = total_files = 0
+    for c_start, c_end in month_chunks(start, end):
+        payload = fetch(c_start, c_end)
+        cols = to_columns(payload, run_ts, f"weather/{c_start}_{c_end}.parquet")
+        n = write_landing(cols, root, run_ts)
+        rows = len(cols["valid_timestamp_utc"])
+        total_rows += rows
+        total_files += n
+        print(f"  {c_start} .. {c_end}   rows={rows:>8,}  files={n:>4}")
+    return total_rows, total_files
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -217,19 +241,8 @@ def main() -> int:
     start = max(start, TEMP_START)
     run_ts = datetime.now(timezone.utc).replace(microsecond=0)
 
-    print(f"points={len(PJM_POINTS)} leads={LEADS} vars={len(VARIABLES)}")
-    print(f"khoang {start} -> {end}   run_ts={run_ts.isoformat()}")
-    print(f"luu y: cac bien ngoai temperature chi co tu {RICH_START} (D-21)")
-    total_rows = total_files = 0
-    for c_start, c_end in month_chunks(start, end):
-        payload = fetch(c_start, c_end)
-        cols = to_columns(payload, run_ts, f"weather/{c_start}_{c_end}.parquet")
-        n = write_landing(cols, Path(a.out), run_ts)
-        rows = len(cols["valid_timestamp_utc"])
-        total_rows += rows
-        total_files += n
-        print(f"  {c_start} .. {c_end}   rows={rows:>8,}  files={n:>4}")
-    print(f"\nTONG rows={total_rows:,}  files={total_files:,}")
+    rows, files = run_extract(start, end, Path(a.out), run_ts)
+    print(f"\nTONG rows={rows:,}  files={files:,}")
     return 0
 
 

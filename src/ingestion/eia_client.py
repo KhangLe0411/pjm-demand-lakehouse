@@ -197,7 +197,9 @@ def run_probe(client: EIAClient) -> None:
 
 
 def run_extract(client: EIAClient, start: date, end: date, root: Path,
-                types: tuple[str, ...]) -> None:
+                types: tuple[str, ...]) -> tuple[int, int]:
+    """Fetch and land a date range. Returns (rows, files), matching
+    weather_client.run_extract so a caller can treat the two the same way."""
     run_ts = datetime.now(timezone.utc).replace(microsecond=0)
     print(f"respondent={client.respondent}  types={','.join(types)}")
     print(f"khoang {start} -> {end}   run_ts={run_ts.isoformat()}")
@@ -208,7 +210,8 @@ def run_extract(client: EIAClient, start: date, end: date, root: Path,
         total_rows += len(rows)
         total_files += len(files)
         print(f"  {w_start[:7]}  rows={len(rows):>6,}  files={len(files):>3}")
-    print(f"\nTONG  rows={total_rows:,}  files={total_files:,}  ->  {root}")
+    print(f"\nTOTAL rows={total_rows:,}  files={total_files:,}  ->  {root}")
+    return total_rows, total_files
 
 
 def main() -> int:

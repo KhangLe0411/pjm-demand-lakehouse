@@ -43,6 +43,10 @@ targets:
     variables:
       catalog: energy_dev
       checkpoint_root: abfss://energy@stlakeobs0803.dfs.core.windows.net/_checkpoints_dev
+      # Its own landing, not a shared one. Unity Catalog refuses two external volumes
+      # over one path, and it is right to: the extractors now WRITE here, so a shared
+      # landing would let a dev run put files into prod's source of truth.
+      landing_root: abfss://energy@stlakeobs0803.dfs.core.windows.net/landing_dev
 
   prod:
     mode: production

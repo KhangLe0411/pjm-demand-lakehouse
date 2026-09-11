@@ -35,7 +35,20 @@ resources:
         pause_status: PAUSED
 
       tasks:
+        # Fetches from the source APIs into the landing zone. Without it the schedule
+        # would reprocess the same files indefinitely — the pipeline would run, report
+        # success, and never see a new hour.
+        - task_key: ingest
+          notebook_task:
+            notebook_path: ../notebooks/00_ingest.py
+            base_parameters:
+              catalog: ${var.catalog}
+              mode: incremental
+              lookback_days: "14"
+              secret_scope: energy
+
         - task_key: bronze
+          depends_on: [{ task_key: ingest }]
           notebook_task:
             notebook_path: ../notebooks/01_bronze_autoloader.py
             base_parameters:
