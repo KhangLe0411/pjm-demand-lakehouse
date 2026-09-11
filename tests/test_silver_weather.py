@@ -1,6 +1,10 @@
 from pyspark.sql import functions as F
 from pyspark.sql.types import (
-    DoubleType, IntegerType, StringType, StructField, StructType,
+    DoubleType,
+    IntegerType,
+    StringType,
+    StructField,
+    StructType,
 )
 
 from src.silver.weather import DEGREE_DAY_BASE_C, add_degree_days, build_weather_silver
@@ -103,8 +107,10 @@ def test_missing_temperature_does_not_become_zero_degree_days(spark):
 
 def test_degree_days_coverage_can_never_exceed_temperature_coverage(spark):
     s, _ = build_weather_silver(spark.createDataFrame([
-        ("2022-06-01T12:00", 2, "PJM", "p1", 39.9, -75.1, 25.0, None, None, None, None, None, "t", "f", "t"),
-        ("2022-06-01T13:00", 2, "PJM", "p1", 39.9, -75.1, None, None, None, None, None, None, "t", "f", "t"),
+        ("2022-06-01T12:00", 2, "PJM", "p1", 39.9, -75.1, 25.0,
+         None, None, None, None, None, "t", "f", "t"),
+        ("2022-06-01T13:00", 2, "PJM", "p1", 39.9, -75.1, None,
+         None, None, None, None, None, "t", "f", "t"),
     ], LANDING_SCHEMA))
     rows = s.collect()
     n_temp = sum(r["temperature_c"] is not None for r in rows)

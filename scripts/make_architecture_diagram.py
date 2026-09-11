@@ -18,7 +18,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from diagram_icons import data_uri, svg_href   # noqa: E402
+from diagram_icons import data_uri, svg_href  # noqa: E402
 
 W, H = 1880, 1180
 
@@ -120,7 +120,8 @@ BARS = [
      "external location loc-energy → abfss://energy@stlakeobs0803   ·   credential cred-lakeobs"
      "   ·   Predictive Optimization DISABLED"),
     ("azure", "Cost guardrails — $100 student credit",
-     "serverless-only workspace, so no idle billing (D-32)   ·   measured: ~35 s notebook + 40-60 s env floor (D-38)"
+     "serverless-only workspace, so no idle billing (D-32)   ·   "
+     "measured: ~35 s notebook + 40-60 s env floor (D-38)"
      "   ·   ~90% of the work ran local at $0   ·   Databricks: 3 job runs, 60-94 s"),
     ("python", "Verification",
      "149 pytest   ·   local Bronze == cloud Bronze, row for row (D-33)"
@@ -154,7 +155,9 @@ def drawio() -> str:
 
     cell("title", "Hourly Incremental Electricity Demand Forecasting Lakehouse  —  PJM",
          "text;html=1;fontSize=24;fontStyle=1;fontColor=#C00000;", 40, 26, 1050, 40)
-    cell("sub", "Azure Databricks · ADLS Gen2 · Unity Catalog · EIA-930 + archived weather forecasts",
+    cell("sub",
+         "Azure Databricks · ADLS Gen2 · Unity Catalog · "
+         "EIA-930 + archived weather forecasts",
          "text;html=1;fontSize=13;fontColor=#555555;", 42, 62, 950, 24)
 
     lx = 1250
@@ -231,7 +234,7 @@ def svg() -> str:
         o.append(f'<text x="{x+72}" y="49" font-size="10" font-weight="600" '
                  f'text-anchor="middle" fill="{txt}">{esc(label)}</text>')
 
-    for ci, (name, x, w) in enumerate(COLUMNS):
+    for name, x, w in COLUMNS:
         o.append(f'<rect x="{x}" y="{COL_TOP-44}" width="{w}" height="{COL_BOT-COL_TOP+44}" '
                  f'fill="none" stroke="#C00000" stroke-dasharray="6 6"/>')
         o.append(f'<text x="{x+w/2}" y="{HEAD_Y+18}" font-size="14" font-weight="600" '
@@ -248,7 +251,7 @@ def svg() -> str:
                  f'stroke="{stroke}" stroke-width="1.4"{dash}/>')
         o.append(f'<image xlink:href="{svg_href(icon)}" x="{x+9}" y="{y+h/2-11}" '
                  f'width="22" height="22"/>')
-        lines = [l for l in sub.split("\n") if l] if sub else []
+        lines = [ln for ln in sub.split("\n") if ln] if sub else []
         tx, ty = x + 37, y + (19 if lines else h / 2 + 4)
         o.append(f'<text x="{tx}" y="{ty}" font-size="11" font-weight="700" '
                  f'fill="{txt}">{esc(title)}</text>')
@@ -294,7 +297,7 @@ if __name__ == "__main__":
         assert a in ids and b in ids, f"edge references unknown node: {a}->{b}"
     for ci in range(len(COLUMNS)):
         band = sorted([(n[2], n[2] + n[3], n[0]) for n in NODES if n[1] == ci])
-        for (y0, y1, a), (y2, _, b) in zip(band, band[1:]):
+        for (_y0, y1, a), (y2, _, b) in zip(band, band[1:], strict=False):
             assert y1 <= y2, f"overlap in column {ci}: {a} and {b}"
         if band:
             assert band[-1][1] <= BAR_Y0 - 20, f"column {ci} runs into the bars"

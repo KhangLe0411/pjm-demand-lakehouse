@@ -26,7 +26,7 @@ class Model:
     name = "base"
     needs_fit = False
 
-    def fit(self, train: pd.DataFrame) -> "Model":
+    def fit(self, train: pd.DataFrame) -> Model:
         return self
 
     def predict(self, test: pd.DataFrame) -> np.ndarray:
@@ -95,7 +95,7 @@ class XGBModel(Model):
                                  # compared against a previous one
     }
 
-    def fit(self, train: pd.DataFrame) -> "XGBModel":
+    def fit(self, train: pd.DataFrame) -> XGBModel:
         import xgboost as xgb
 
         usable = train.dropna(subset=[LABEL])
@@ -139,7 +139,7 @@ class XGBRatioModel(XGBModel):
 
     baseline_col: str = "demand_rolling_mean_24h_to_cutoff"
 
-    def fit(self, train: pd.DataFrame) -> "XGBRatioModel":
+    def fit(self, train: pd.DataFrame) -> XGBRatioModel:
         import xgboost as xgb
 
         usable = train.dropna(subset=[LABEL, self.baseline_col])

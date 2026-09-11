@@ -7,6 +7,7 @@ and this preview — so the layout can be reviewed and argued about before anyon
 Power BI Desktop. Every figure below comes from `forecast_accuracy.parquet`.
 """
 from __future__ import annotations
+
 import json
 from pathlib import Path
 

@@ -12,16 +12,17 @@ from datetime import date, timedelta
 from pyspark.sql import functions as F
 
 sys.path.insert(0, ".")
-from src.silver.calendar_utils import PJM_TZ, expected_hours   # noqa: E402
+from src.silver.calendar_utils import PJM_TZ, expected_hours  # noqa: E402
 from src.silver.electricity import build_silver, completeness  # noqa: E402
-from src.spark import local_session                            # noqa: E402
+from src.spark import local_session  # noqa: E402
 
 spark = local_session(app="silver-local")
 bronze = spark.read.parquet("data/landing/eia/region-data")
 print(f"bronze rows            {bronze.count():>10,}")
 
 silver, quarantine = build_silver(bronze, spark)
-silver.cache(); quarantine.cache()
+silver.cache()
+quarantine.cache()
 print(f"silver rows            {silver.count():>10,}")
 print(f"quarantine rows        {quarantine.count():>10,}")
 
@@ -63,7 +64,8 @@ joined = comp.join(exp, "local_date")
 print("=== Ngay KHONG khop expected (bug thuc su, neu co) ===")
 bad = joined.filter("actual_hours <> expected_hours")
 print(f"  so ngay lech: {bad.count():,}")
-bad.select("local_date", "expected_hours", "actual_hours").orderBy("local_date").show(10, truncate=False)
+bad.select("local_date", "expected_hours", "actual_hours") \
+   .orderBy("local_date").show(10, truncate=False)
 
 print("=== Revision ===")
 silver.select(F.max("revision_count").alias("max_revision"),

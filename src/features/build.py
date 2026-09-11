@@ -18,10 +18,13 @@ from pyspark.sql import functions as F
 from src.features.calendar_features import calendar_features
 from src.features.contract import cutoff_utc, target_hours_utc
 from src.features.spec import (
-    PRIMARY_LEAD, PUBLICATION_LAG_HOURS, Anchor, FeatureSpec, FEATURES_MODEL_B,
+    FEATURES_MODEL_B,
+    PRIMARY_LEAD,
+    PUBLICATION_LAG_HOURS,
+    Anchor,
+    FeatureSpec,
 )
 from src.silver.calendar_utils import PJM_TZ
-from src.silver.weather import DEGREE_DAY_BASE_C
 
 ROLLING_ANCHOR_H = int(PUBLICATION_LAG_HOURS["D"])   # newest demand usable at cutoff
 PREV_WEEK_DAYS = (2, 3, 4, 5, 6, 7)                  # same clock hour, 2..7 days back

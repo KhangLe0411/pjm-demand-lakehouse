@@ -196,7 +196,7 @@ def check_overlaps(path: Path) -> list[str]:
             items.append((y, y + h, c.get("id")))
     items.sort()
     out = []
-    for (y0, y1, a), (y2, _, b) in zip(items, items[1:]):
+    for (_y0, y1, a), (y2, _, b) in zip(items, items[1:], strict=False):
         if y1 > y2:
             out.append(f"{a} overlaps {b}")
     if items and items[-1][1] > COL5_BOTTOM:

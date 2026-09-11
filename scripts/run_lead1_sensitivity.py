@@ -11,16 +11,23 @@ script asserts that it still does before reporting a single number. A variant th
 audit refuses must never quietly become the headline.
 """
 from __future__ import annotations
+
 import sys
 from datetime import date
+
 import pandas as pd
+
 sys.path.insert(0, ".")
-from src.features.contract import cutoff_utc, target_hours_utc      # noqa: E402
-from src.features.spec import (FEATURES_LEAD1_VARIANT,              # noqa: E402
-                               FEATURES_MODEL_A, FEATURES_MODEL_B, audit)
-from src.ml import evaluate as ev                                    # noqa: E402
-from src.ml.backtest import monthly_folds, run_backtest, scoreable   # noqa: E402
-from src.ml.models import XGBModel, eia_benchmark                    # noqa: E402
+from src.features.contract import cutoff_utc, target_hours_utc  # noqa: E402
+from src.features.spec import (  # noqa: E402
+                               FEATURES_LEAD1_VARIANT,
+                               FEATURES_MODEL_A,
+                               FEATURES_MODEL_B,
+                               audit,
+)
+from src.ml import evaluate as ev  # noqa: E402
+from src.ml.backtest import monthly_folds, run_backtest, scoreable  # noqa: E402
+from src.ml.models import XGBModel, eia_benchmark  # noqa: E402
 
 lead2 = [s.name for s in FEATURES_MODEL_B]
 lead1 = [s.name for s in FEATURES_MODEL_A] + [s.name for s in FEATURES_LEAD1_VARIANT]
@@ -48,18 +55,27 @@ s = scoreable(preds)
 preds.to_parquet("data/features/backtest_lead1.parquet", index=False)
 
 pd.set_option("display.width", 165)
-print("=" * 84); print("OVERALL"); print("=" * 84)
+
+def banner(title: str) -> None:
+    print("\n" + "=" * 84)
+    print(title)
+    print("=" * 84)
+
+banner("OVERALL")
 print(ev.versus(s).to_string(index=False))
-print("\n" + "=" * 84); print("PEAK"); print("=" * 84)
+banner("PEAK")
 print(ev.peak_summary(ev.peak_metrics(s)).to_string(index=False))
-print("\n" + "=" * 84); print("EXTREME REGIME"); print("=" * 84)
-r = ev.by_regime(s); print(r[r.regime == "extreme"].to_string(index=False))
+banner("EXTREME REGIME")
+r = ev.by_regime(s)
+print(r[r.regime == "extreme"].to_string(index=False))
 
 o = ev.overall(s).set_index("model")
-gap_l2 = 100 * (o.loc["xgb_b", "MAE_mwh"] - o.loc["eia_df", "MAE_mwh"]) / o.loc["eia_df", "MAE_mwh"]
-gap_l1 = 100 * (o.loc["xgb_b_lead1", "MAE_mwh"] - o.loc["eia_df", "MAE_mwh"]) / o.loc["eia_df", "MAE_mwh"]
-cost = 100 * (o.loc["xgb_b", "MAE_mwh"] - o.loc["xgb_b_lead1", "MAE_mwh"]) / o.loc["xgb_b_lead1", "MAE_mwh"]
-print("\n" + "=" * 84); print("WHAT THE SAFETY MARGIN COSTS"); print("=" * 84)
+bench = o.loc["eia_df", "MAE_mwh"]
+gap_l2 = 100 * (o.loc["xgb_b", "MAE_mwh"] - bench) / bench
+gap_l1 = 100 * (o.loc["xgb_b_lead1", "MAE_mwh"] - bench) / bench
+lead1 = o.loc["xgb_b_lead1", "MAE_mwh"]
+cost = 100 * (o.loc["xgb_b", "MAE_mwh"] - lead1) / lead1
+banner("WHAT THE SAFETY MARGIN COSTS")
 print(f"  gap to benchmark, lead-2 (deployable) : {gap_l2:+.2f}% MAE")
 print(f"  gap to benchmark, lead-1 (rejected)   : {gap_l1:+.2f}% MAE")
 print(f"  price of provable availability        : {cost:+.2f}% MAE")

@@ -9,8 +9,11 @@ import pytest
 
 from src.ml.models import LABEL, XGBModel
 from src.ml.registry import (
-    DemandForecaster, decide_promotion, log_and_register, champion_metric,
-    load_champion, set_champion,
+    champion_metric,
+    decide_promotion,
+    load_champion,
+    log_and_register,
+    set_champion,
 )
 
 NAME = "demand_forecaster_test"

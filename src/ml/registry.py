@@ -49,6 +49,7 @@ class DemandForecaster(mlflow.pyfunc.PythonModel):
 
     def load_context(self, context):
         import json
+
         import xgboost as xgb
 
         self.booster = xgb.Booster()

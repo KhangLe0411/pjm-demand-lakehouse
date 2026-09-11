@@ -3,7 +3,10 @@ from datetime import date
 import pytest
 
 from src.features.calendar_features import (
-    calendar_features, days_to_nearest_holiday, holiday_name, nerc_holidays,
+    calendar_features,
+    days_to_nearest_holiday,
+    holiday_name,
+    nerc_holidays,
 )
 
 

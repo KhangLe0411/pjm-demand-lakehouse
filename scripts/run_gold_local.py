@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """Silver -> Gold locally, and report what the anomaly filter actually prevented."""
 from __future__ import annotations
+
 import sys
 from datetime import date
+
 from pyspark.sql import functions as F
+
 sys.path.insert(0, ".")
-from src.gold.daily_summary import daily_summary, peak_history   # noqa: E402
-from src.silver.calendar_utils import calendar_frame             # noqa: E402
-from src.silver.electricity import build_silver                  # noqa: E402
-from src.spark import local_session                              # noqa: E402
+from src.gold.daily_summary import daily_summary  # noqa: E402
+from src.silver.calendar_utils import calendar_frame  # noqa: E402
+from src.silver.electricity import build_silver  # noqa: E402
+from src.spark import local_session  # noqa: E402
 
 spark = local_session(app="gold-local")
 silver, _ = build_silver(spark.read.parquet("data/landing/eia/region-data"), spark)
@@ -27,7 +30,8 @@ for name, df in (("KHONG filter", unfilt), ("CO filter", filt)):
              .select("local_date", "peak_demand_mwh", "peak_local_hour").limit(5).collect())
     print(f"\n  {name}:")
     for r in top:
-        print(f"    {r['local_date']}  {r['peak_demand_mwh']:>10,.0f} MWh  h={r['peak_local_hour']:02d}")
+        print(f"    {r['local_date']}  {r['peak_demand_mwh']:>10,.0f} MWh"
+              f"  h={r['peak_local_hour']:02d}")
 print("\n  PJM ky luc that ~165,563 MW (8/2006). Recent summer peak ~150-155 GW.")
 
 print("\n=== Peak theo nam (co filter, ngay complete) ===")

@@ -9,8 +9,13 @@ import pytest
 
 from src.features.contract import cutoff_utc, horizon_hours, target_hours_utc
 from src.features.spec import (
-    FEATURES_LEAD1_VARIANT, FEATURES_MODEL_A, FEATURES_MODEL_B, KNOWN_LEAKY,
-    Anchor, FeatureSpec, audit,
+    FEATURES_LEAD1_VARIANT,
+    FEATURES_MODEL_A,
+    FEATURES_MODEL_B,
+    KNOWN_LEAKY,
+    Anchor,
+    FeatureSpec,
+    audit,
 )
 
 # Ordinary days plus both DST transitions in both directions.

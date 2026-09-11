@@ -91,7 +91,8 @@ ICONS: dict[str, str] = {
 
     # Event / stream (for the excluded Kafka box)
     "stream": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">'
-        '<circle cx="6" cy="6" r="2.4" fill="#7F8C8D"/><circle cx="6" cy="18" r="2.4" fill="#7F8C8D"/>'
+        '<circle cx="6" cy="6" r="2.4" fill="#7F8C8D"/>'
+        '<circle cx="6" cy="18" r="2.4" fill="#7F8C8D"/>'
         '<circle cx="18" cy="12" r="2.4" fill="#7F8C8D"/>'
         '<path d="M8.2 7 15.8 11M8.2 17l7.6-4" stroke="#7F8C8D" stroke-width="1.6"/></svg>',
 

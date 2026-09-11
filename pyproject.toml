@@ -1,0 +1,23 @@
+[tool.ruff]
+line-length = 100
+exclude = [".venv", "data", ".databricks", "mlruns", ".pytest_cache"]
+
+[tool.ruff.lint]
+# E/W pycodestyle · F pyflakes · I import order · UP pyupgrade · B bugbear.
+# Deliberately not "ALL": a rule set nobody chose is a rule set nobody obeys, and the
+# noise trains people to ignore the output.
+select = ["E", "W", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# Databricks injects `dbutils`, `spark` and friends into the notebook runtime, so they
+# are genuinely undefined at lint time (F821). Imports also follow widget setup, which
+# is required — the catalog parameter must be read before anything uses it (E402).
+# I001 is excluded too: a notebook's import blocks are bounded by
+# `# COMMAND ----------` cell markers, and re-sorting risks lifting an import across one.
+# Tidy import order inside a notebook cell is worth very little; a broken cell boundary
+# costs a deploy-and-run cycle to discover.
+"notebooks/*" = ["E402", "F821", "I001"]
+
+# Local runner scripts insert the repo root on sys.path before importing from src/,
+# which is the point: they run from the repo without being installed.
+"scripts/*" = ["E402"]

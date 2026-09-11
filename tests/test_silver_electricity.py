@@ -1,14 +1,19 @@
 """Silver contract tests. Every case here corresponds to something the real EIA feed
 actually contains, established by profiling the 2019-2026 backfill."""
-from datetime import datetime
 
 import pytest
 from pyspark.sql import functions as F
 from pyspark.sql.types import StringType, StructField, StructType
 
 from src.silver.electricity import (
-    add_local_time, align_day_ahead_forecast, attach_hour_spine, build_silver,
-    classify, flag_anomalies, pivot_to_wide, resolve_revisions, split_quarantine,
+    add_local_time,
+    attach_hour_spine,
+    build_silver,
+    classify,
+    flag_anomalies,
+    pivot_to_wide,
+    resolve_revisions,
+    split_quarantine,
 )
 
 BRONZE_COLS = ["period", "respondent", "respondent_name", "type", "type_name",

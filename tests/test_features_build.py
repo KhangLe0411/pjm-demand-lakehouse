@@ -9,7 +9,7 @@ from datetime import date
 from pyspark.sql import functions as F
 
 from src.features.build import build_features
-from src.features.spec import FEATURES_MODEL_A, FEATURES_MODEL_B, Anchor
+from src.features.spec import FEATURES_MODEL_A, FEATURES_MODEL_B
 
 START, END = date(2024, 6, 1), date(2024, 6, 10)
 

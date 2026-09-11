@@ -2,16 +2,19 @@
 """Materialise every layer locally and print a sample of each, plus one hour traced
 end to end. Bronze is written as a real Delta table rather than described."""
 from __future__ import annotations
+
 import sys
 from datetime import date
+
 from pyspark.sql import functions as F
+
 sys.path.insert(0, ".")
-from src.features.build import build_features                     # noqa: E402
-from src.gold.daily_summary import daily_summary                  # noqa: E402
-from src.silver.calendar_utils import calendar_frame              # noqa: E402
-from src.silver.electricity import build_silver                   # noqa: E402
-from src.silver.weather import build_weather_silver               # noqa: E402
-from src.spark import local_session                               # noqa: E402
+from src.features.build import build_features  # noqa: E402
+from src.gold.daily_summary import daily_summary  # noqa: E402
+from src.silver.calendar_utils import calendar_frame  # noqa: E402
+from src.silver.electricity import build_silver  # noqa: E402
+from src.silver.weather import build_weather_silver  # noqa: E402
+from src.spark import local_session  # noqa: E402
 
 PEAK_UTC = "2026-07-02 22:00:00"
 spark = local_session(app="show-layers")
@@ -49,7 +52,7 @@ silver, quarantine = build_silver(bronze, spark)
 silver.cache()
 print(f"\nrows = {silver.count():,}  (bronze {bronze.count():,} -> long thanh wide)")
 print("\n--- 10 dong quanh gio peak ---")
-(silver.filter(f"event_timestamp_utc BETWEEN '2026-07-02 18:00:00' AND '2026-07-03 03:00:00'")
+(silver.filter("event_timestamp_utc BETWEEN '2026-07-02 18:00:00' AND '2026-07-03 03:00:00'")
  .select(F.date_format("event_timestamp_utc", "MM-dd HH:mm").alias("utc"),
          F.date_format("local_timestamp", "MM-dd HH:mm").alias("local"),
          "local_hour",

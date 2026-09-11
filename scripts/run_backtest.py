@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """Rolling-origin backtest. Pure pandas — no Spark, no Databricks imports."""
 from __future__ import annotations
+
 import sys
+
 import pandas as pd
+
 sys.path.insert(0, ".")
-from src.features.spec import FEATURES_MODEL_A, FEATURES_MODEL_B   # noqa: E402
-from src.ml import evaluate as ev                                  # noqa: E402
+from src.features.spec import FEATURES_MODEL_A, FEATURES_MODEL_B  # noqa: E402
+from src.ml import evaluate as ev  # noqa: E402
 from src.ml.backtest import monthly_folds, run_backtest, scoreable  # noqa: E402
-from src.ml.models import XGBModel, eia_benchmark, seasonal_naive   # noqa: E402
+from src.ml.models import XGBModel, eia_benchmark, seasonal_naive  # noqa: E402
 
 SRC = sys.argv[1] if len(sys.argv) > 1 else "data/features/demand_features"
 df = pd.read_parquet(SRC)

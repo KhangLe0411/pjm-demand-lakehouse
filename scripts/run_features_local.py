@@ -1,24 +1,27 @@
 #!/usr/bin/env python3
 """Build the feature table locally, then audit every row of it for leakage."""
 from __future__ import annotations
+
 import sys
 from datetime import date
+
 from pyspark.sql import functions as F
+
 sys.path.insert(0, ".")
-from src.features.build import build_features                        # noqa: E402
-from src.features.contract import cutoff_utc, target_hours_utc       # noqa: E402
-from src.features.spec import (FEATURES_MODEL_A, FEATURES_MODEL_B,   # noqa: E402
-                               Anchor, audit)
-from src.silver.electricity import build_silver                      # noqa: E402
-from src.silver.weather import build_weather_silver                  # noqa: E402
-from src.spark import local_session                                  # noqa: E402
+from src.features.build import build_features  # noqa: E402
+from src.features.contract import cutoff_utc, target_hours_utc  # noqa: E402
+from src.features.spec import FEATURES_MODEL_B, audit  # noqa: E402
+from src.silver.electricity import build_silver  # noqa: E402
+from src.silver.weather import build_weather_silver  # noqa: E402
+from src.spark import local_session  # noqa: E402
 
 START, END = date(2021, 3, 24), date(2026, 9, 6)
 
 spark = local_session(app="features-local")
 silver, _ = build_silver(spark.read.parquet("data/landing/eia/region-data"), spark)
 weather, wq = build_weather_silver(spark.read.parquet("data/landing/weather"))
-silver.cache(); weather.cache()
+silver.cache()
+weather.cache()
 print(f"silver electricity   {silver.count():>9,}")
 print(f"silver weather       {weather.count():>9,}   quarantine {wq.count()}")
 

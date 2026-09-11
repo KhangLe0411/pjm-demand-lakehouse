@@ -7,8 +7,8 @@ import pandas as pd
 import pytest
 
 from src.ml import evaluate as ev
-from src.ml.backtest import Fold, monthly_folds, run_backtest, scoreable
-from src.ml.models import LABEL, ColumnModel, Model, eia_benchmark, seasonal_naive
+from src.ml.backtest import monthly_folds, run_backtest, scoreable
+from src.ml.models import LABEL, ColumnModel, eia_benchmark, seasonal_naive
 
 
 def features(start="2021-01-01", end="2023-12-31"):
@@ -47,7 +47,7 @@ def test_no_fold_can_see_its_own_future():
 
 def test_folds_are_chronological_and_expanding():
     f = monthly_folds(features()["forecast_date"], min_train_months=12)
-    for a, b in zip(f, f[1:]):
+    for a, b in zip(f, f[1:], strict=False):
         assert a.test_end < b.test_start          # no overlap, in order
         assert a.train_end < b.train_end          # training window grows
         assert a.train_start == b.train_start     # expanding, not sliding
@@ -76,7 +76,7 @@ def test_extreme_threshold_comes_from_training_only():
     df = features("2021-01-01", "2022-06-30")
     folds = monthly_folds(df["forecast_date"], 12)
     p = run_backtest(df, [seasonal_naive()], folds, verbose=False)
-    for fold, g in p.groupby("fold"):
+    for _fold, g in p.groupby("fold"):
         thr = g["extreme_threshold_mwh"].iloc[0]
         train = df[df["forecast_date"] <= g["train_end"].iloc[0]]
         assert thr == pytest.approx(train[LABEL].quantile(0.95))
@@ -140,7 +140,7 @@ def test_sliding_window_bounds_training_age():
     exp = monthly_folds(dates, min_train_months=12)
     sli = monthly_folds(dates, min_train_months=12, window_months=12)
     assert len(exp) == len(sli)
-    for a, b in zip(exp, sli):
+    for a, b in zip(exp, sli, strict=False):
         assert a.test_start == b.test_start and a.test_end == b.test_end  # same test rows
         assert b.train_start >= a.train_start
         assert (b.train_end - b.train_start).days <= 372                  # ~12 months

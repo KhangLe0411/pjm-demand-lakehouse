@@ -9,13 +9,15 @@ On Databricks the equivalent read is one line:
     spark.table("energy.gold.demand_features").toPandas()
 """
 from __future__ import annotations
+
 import sys
 from datetime import date
+
 sys.path.insert(0, ".")
-from src.features.build import build_features          # noqa: E402
-from src.silver.electricity import build_silver        # noqa: E402
-from src.silver.weather import build_weather_silver    # noqa: E402
-from src.spark import local_session                    # noqa: E402
+from src.features.build import build_features  # noqa: E402
+from src.silver.electricity import build_silver  # noqa: E402
+from src.silver.weather import build_weather_silver  # noqa: E402
+from src.spark import local_session  # noqa: E402
 
 OUT = "data/features/demand_features"
 spark = local_session(app="export-features")
@@ -31,7 +33,8 @@ feats = build_features(silver, weather, spark, date(2021, 3, 24), date(2026, 9, 
 feats.coalesce(1).write.mode("overwrite").parquet(OUT)
 spark.stop()
 
-import pandas as pd                                     # noqa: E402
+import pandas as pd  # noqa: E402
+
 pdf = pd.read_parquet(OUT)
 print(f"{len(pdf):,} rows x {len(pdf.columns)} cols -> {OUT}")
 print(f"labelled rows : {pdf['label_demand_mwh'].notna().sum():,}")

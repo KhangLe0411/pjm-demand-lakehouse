@@ -105,7 +105,7 @@ def q4_coverage(key: str) -> None:
 
 def q6_thresholds(key: str) -> None:
     """Calibrate the hard sanity bounds from real data instead of guessing."""
-    print(f"\n[Q6] Bien do demand thuc te (de dat hard bound) - mau 2023-2024")
+    print("\n[Q6] Bien do demand thuc te (de dat hard bound) - mau 2023-2024")
     vals: list[float] = []
     offset = 0
     while offset < 20000:

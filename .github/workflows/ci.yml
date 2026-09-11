@@ -1,0 +1,79 @@
+name: CI
+
+# Every push and every PR. This workflow touches no cloud resource and costs nothing,
+# which is why it can afford to run on everything — the deploy workflows cannot.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Two CI runs on one ref are wasteful but harmless, so superseded runs are cancelled.
+# The deploy workflows must NOT do this: cancelling a build is free, cancelling a
+# half-written deployment state is not.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # PySpark 3.5 supports Java 8/11/17 — not 21. Pinned to 11 to match DBR 16.4 LTS
+      # (Spark 3.5.2) and the local dev setup, so a test cannot pass here and fail on
+      # the cluster for a runtime reason.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      # delta-spark pulls its jars through Ivy on the first SparkSession — ~6 MB and
+      # roughly 30 s per run without this.
+      - name: Cache Ivy (delta-spark jars)
+        uses: actions/cache@v4
+        with:
+          path: ~/.ivy2
+          key: ivy-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt ruff
+
+      - name: Lint
+        run: ruff check .
+
+      # The whole suite runs here because nothing in it needs Databricks: the registry
+      # tests use a local SQLite backend and the Spark tests use local PySpark. That is
+      # a consequence of keeping src/ free of Databricks imports, and it is what makes
+      # this job meaningful rather than a formality.
+      #
+      # Two of these earn their place specifically in CI, because they assert a
+      # property of the source rather than behaviour under execution — so they catch
+      # what running on a dev machine never will:
+      #   · no .cache()/.persist() in src/  — unsupported on serverless compute
+      #   · notebooks parse, carry the Databricks header, hard-code no catalog
+      - name: Test
+        env:
+          TZ: UTC        # the Spark session pins UTC; the driver process must agree
+        run: pytest -q --durations=10
+
+      # Generated from code, so a stale committed copy means the diagram and the
+      # generator disagree — and the diagram is what people read first.
+      - name: Diagram is up to date
+        run: |
+          python scripts/make_architecture_diagram.py
+          git diff --exit-code -- docs/diagrams/ \
+            || { echo "::error::diagram is stale — run scripts/make_architecture_diagram.py and commit"; exit 1; }

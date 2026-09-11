@@ -44,7 +44,7 @@ def build_forecast_run(preds: pd.DataFrame, region_id: str = "PJM",
     g["weather_lead_days"] = weather_lead_days
     g["forecast_run_id"] = [
         _run_id(region_id, m, c, model_version)
-        for m, c in zip(g["model"], g["cutoff_utc"])]
+        for m, c in zip(g["model"], g["cutoff_utc"], strict=False)]
     g["created_at"] = pd.Timestamp.utcnow().tz_localize(None)
     return g[["forecast_run_id", "region_id", "cutoff_utc", "model", "model_version",
               "weather_lead_days", "training_data_end", "training_rows", "fold",
