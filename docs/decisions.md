@@ -2126,3 +2126,41 @@ rollback that still means something.
 
 The `energy_dev` path is untouched: the laptop's dev deployment still lives there and
 dev versions v1–v4 still point into it.
+
+### The two runs that were deleted, recorded here instead
+
+Captured before removing the directory, because after it they are unrecoverable:
+
+```
+v1  run 5a5c7b81…   holdout_mae       3409.0442972269143   holdout_rows      888
+                    holdout_bias     -2118.856075802365    train_rows     46,944
+v2  run c23075c4…   gate_holdout_mae  3409.0442972269143   gate_holdout_rows 888
+                    gate_holdout_bias -2118.856075802365    train_rows     47,758
+```
+
+v1 carries the pre-rename metric name and v2 the current one — that much was known. What
+was not: **their gate scores are identical to sixteen digits while `train_rows` differs
+by 814.** The served models were different and the gate models were the same, because
+both fell in the same month and so trained on the same pre-cut rows.
+
+So the degenerate comparison D-44 found was not introduced by D-44's fix. It was already
+there at v1 → v2, hidden: the old code compared against a *recorded* number, which
+differed, so the gate looked like it was discriminating. It was reading two labels on
+one measurement. The fix did not create the blind spot; it made it visible, which is the
+only reason it is now reported instead of believed.
+
+### Deleted, and verified afterwards rather than assumed
+
+```
+databricks workspace delete /Users/20133050@…/.bundle/energy/prod --recursive
+```
+
+Only the `prod` child; `…/.bundle/energy/dev` is still there and still the laptop's.
+Afterwards, in this order: the service principal's prod deployment intact,
+`check_deploy.py` reporting the live jobs match the bundle, `@champion` v4's run still
+readable, v1 and v2's runs gone exactly as predicted and v3's still present — then a
+full daily pipeline run, green, `forecast` serving `champion_version 4` and all twelve
+post-conditions holding.
+
+The last step is the one that matters. Everything before it is inference about whether
+the deletion broke anything; only running the consumer answers it.

@@ -1037,8 +1037,17 @@ energy_daily_pipeline   load @champion, predict, score          daily
 **Registering is not promoting.** Drift was measured here — demand rose 11.5% across the
 backtest and the model's bias tracked it (section 32) — so a refit is not automatically
 an improvement. Each run registers a version; the alias moves only if the candidate is
-within 2% of the incumbent's recorded score. Without that band, month-to-month noise
-alone flips the served model.
+within 2% of the incumbent. Without that band, month-to-month noise alone flips the
+served model.
+
+**The incumbent is re-scored, not looked up.** This used to read "the incumbent's
+*recorded* score", and that was the bug: the holdout starts at a month boundary and ends
+wherever the data does, so each refit measured on a superset of the last. The first time
+it mattered, 7.5% of the evaluation rows were present on one side and absent on the
+other, and the gate declined a candidate over it. Re-scoring the incumbent showed the
+model had never been worse — the added three days simply carried an MAE of 4,584 against
+3,409 on the rest. The incumbent's gate is therefore refitted on its own training window
+and scored on the candidate's holdout, at decision time (D-43, D-44).
 
 **Two models are fitted, deliberately:**
 
@@ -1049,8 +1058,10 @@ alone flips the served model.
 
 Registering only the gate model was tried first and measured: it cost **+9.1% MAE**
 (4,144.7 → 4,523.9), because under drift the withheld months carry the most
-information. The metric is therefore named `gate_holdout_mae` — naming solves the
-"whose score is this" problem for free, where withholding data cost 9.1%.
+information. The metric is therefore named `gate_holdout_mae`, which settles *whose*
+score it is for free. It does not settle *what it was measured on* — that took re-scoring
+the incumbent, and a comment in `registry.py` claiming the metric was already compared
+like-for-like sat there being wrong in the meantime. A good name is not a measurement.
 
 **The wrapper carries a contract.** An XGBoost Booster remembers neither which columns
 it trained on nor their order, and binds by position once a DMatrix is built — handed a
