@@ -1,0 +1,24 @@
+# The MLflow experiment, declared rather than left to be created implicitly.
+#
+# Why this file exists: nothing called `set_experiment`, so MLflow fell back to the
+# notebook's own path — which made the experiment a child of the bundle deployment
+# directory. Moving `root_path` to the service principal (D-40) therefore orphaned the
+# champion's run, and `client.get_run(mv.run_id)` failed with a workspace ACL error
+# whose message named an `aclPath`, not an experiment. A notebook-backed experiment
+# has no ACL of its own: it inherits the notebook's, so it also inherits the notebook's
+# lifetime. Model lineage should not be that fragile.
+#
+# The path is outside `.bundle/`, so redeploying — or deploying from somewhere else —
+# does not move it. It is a direct child of the service principal's home rather than
+# nested under an `mlflow/` folder: DAB does not create parent directories, and the
+# first attempt failed with `Parent directory does not exist`. A path needing a manual
+# mkdir is a path CI trips over the first time it runs against a fresh workspace.
+resources:
+  experiments:
+    energy_forecaster:
+      name: ${var.experiment_path}
+      permissions:
+        - level: CAN_MANAGE
+          service_principal_name: 67fe02eb-8a91-46c3-8094-63902c4df97c
+        - level: CAN_READ
+          user_name: 20133050@student.hcmute.edu.vn

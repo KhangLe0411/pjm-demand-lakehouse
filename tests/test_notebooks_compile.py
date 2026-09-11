@@ -80,3 +80,37 @@ def test_requirements_cover_every_third_party_import():
 
     unused = sorted(declared - {p.lower() for p in third_party})
     assert not unused, f"in requirements.txt but never imported: {unused}"
+
+
+def test_every_widget_a_notebook_reads_is_passed_by_its_job():
+    """A widget the job does not pass falls back to its declared default, silently.
+
+    That is how the MLflow experiment ended up wherever the notebook happened to be
+    deployed (D-40): nothing was wrong with the code, something was simply never
+    supplied, and the default was plausible enough to run. The failure surfaced weeks
+    later as a workspace ACL error naming an `aclPath`, which points nowhere near the
+    cause. Checking the two files agree costs nothing and localises it to this line.
+    """
+    import re
+
+    import yaml
+
+    resources = pathlib.Path("resources")
+    checked = 0
+    for job_file in sorted(resources.glob("*.job.yml")):
+        spec = yaml.safe_load(job_file.read_text())
+        for job in (spec.get("resources", {}).get("jobs", {}) or {}).values():
+            for task in job.get("tasks", []):
+                nb_task = task.get("notebook_task")
+                if not nb_task:
+                    continue
+                notebook = (job_file.parent / nb_task["notebook_path"]).resolve()
+                assert notebook.exists(), f"{nb_task['notebook_path']} does not exist"
+                reads = set(re.findall(
+                    r'dbutils\.widgets\.get\(\s*["\']([^"\']+)["\']', notebook.read_text()))
+                passed = set((nb_task.get("base_parameters") or {}).keys())
+                assert not (reads - passed), (
+                    f"{job_file.name}:{task['task_key']} does not pass "
+                    f"{sorted(reads - passed)} to {notebook.name}, which reads them")
+                checked += 1
+    assert checked >= 8, f"only {checked} notebook tasks checked — did the glob break?"

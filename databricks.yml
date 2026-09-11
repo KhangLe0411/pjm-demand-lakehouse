@@ -8,12 +8,13 @@ bundle:
 include:
   - resources/*.yml
 
-# Only these are synced. Excluding data/ matters: the landing zone is 61 MB of Parquet
-# that already lives on ADLS, and .venv is far larger still.
+# `include` is ADDITIVE, not a whitelist — the bundle root is synced by default, minus
+# whatever .gitignore and `exclude` remove. Verified by listing the deployed files/:
+# tests/, docs/ and .github/ were all up there. So the line that does the real work is
+# `exclude`: the landing zone is 61 MB of Parquet that already lives on ADLS, and .venv
+# is larger still. The rest is small text and is left alone deliberately — having the
+# README and docs beside the code in the workspace is worth more than the bytes.
 sync:
-  include:
-    - notebooks/**
-    - src/**
   exclude:
     - "**/__pycache__/**"
     - data/**
@@ -26,6 +27,12 @@ variables:
   landing_root:
     description: Where the extractors write Parquet
     default: abfss://energy@stlakeobs0803.dfs.core.windows.net/landing
+  experiment_path:
+    description: >-
+      Where MLflow runs are logged. Explicit because the default is the notebook's own
+      workspace path, which ties model lineage to where the bundle happens to be
+      deployed — see resources/energy_experiment.yml.
+    default: /Users/67fe02eb-8a91-46c3-8094-63902c4df97c/mlflow-energy
   checkpoint_root:
     description: >-
       Auto Loader checkpoint location. Parameterised per target for the same reason as
@@ -43,6 +50,7 @@ targets:
     variables:
       catalog: energy_dev
       checkpoint_root: abfss://energy@stlakeobs0803.dfs.core.windows.net/_checkpoints_dev
+      experiment_path: /Users/67fe02eb-8a91-46c3-8094-63902c4df97c/mlflow-energy_dev
       # Its own landing, not a shared one. Unity Catalog refuses two external volumes
       # over one path, and it is right to: the extractors now WRITE here, so a shared
       # landing would let a dev run put files into prod's source of truth.
@@ -57,12 +65,19 @@ targets:
       # ACL — so putting prod there would look restricted while not being it. This
       # workspace hosts a second project, which makes the risk concrete.
       #
-      # A user path is honest for a single-owner project and wrong for a team: it is
-      # orphaned the day that account is deprovisioned. The real answer is a service
-      # principal owning prod, deployed from CI rather than a laptop. Recorded as the
-      # gap it is instead of papered over.
-      root_path: /Users/20133050@student.hcmute.edu.vn/.bundle/${bundle.name}/${bundle.target}
+      # Pinned to the service principal's home, not the deployer's. Prod therefore lands
+      # in the same place no matter who runs the deploy — and a human running
+      # `bundle deploy -t prod` from a laptop now fails unless they hold the
+      # "Service Principal: User" role, which is the guard, not an accident.
+      root_path: /Workspace/Users/67fe02eb-8a91-46c3-8094-63902c4df97c/.bundle/${bundle.name}/${bundle.target}
+    # Jobs run as the SP, so prod keeps working the day the student account expires.
+    run_as:
+      service_principal_name: 67fe02eb-8a91-46c3-8094-63902c4df97c
     permissions:
+      - level: CAN_MANAGE
+        service_principal_name: 67fe02eb-8a91-46c3-8094-63902c4df97c
+      # Break-glass: a human must still be able to read logs and re-run a failed night
+      # without waiting on CI. CAN_MANAGE on the job, not ownership of the bundle.
       - level: CAN_MANAGE
         user_name: 20133050@student.hcmute.edu.vn
     variables:

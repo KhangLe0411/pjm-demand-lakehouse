@@ -42,9 +42,11 @@ else:
 dbutils.widgets.text("catalog", "energy")
 dbutils.widgets.text("holdout_months", "2")
 dbutils.widgets.text("tolerance_pct", "2.0")
+dbutils.widgets.text("experiment_path", "")
 CATALOG = dbutils.widgets.get("catalog")
 HOLDOUT = int(dbutils.widgets.get("holdout_months"))
 TOL = float(dbutils.widgets.get("tolerance_pct"))
+EXPERIMENT = dbutils.widgets.get("experiment_path")
 spark.sql(f"USE CATALOG {CATALOG}")
 
 # COMMAND ----------
@@ -56,6 +58,18 @@ from src.ml.models import LABEL, XGBModel                      # noqa: E402
 from src.ml import registry as reg                             # noqa: E402
 
 mlflow.set_registry_uri("databricks-uc")
+
+# Without this, MLflow logs to the notebook's own path — so the experiment, and with it
+# every run a registered version points at, lives inside the bundle deployment folder.
+# That is how the champion became unreadable after prod moved to the service principal
+# (D-40). Empty means "not passed", which should fail here rather than silently fall
+# back to the default that caused the problem.
+if not EXPERIMENT:
+    raise RuntimeError(
+        "experiment_path is empty. Pass it from the job so runs land in a fixed "
+        "location instead of under whatever path this notebook was deployed to.")
+mlflow.set_experiment(EXPERIMENT)
+print(f"experiment: {EXPERIMENT}")
 NAME = f"{CATALOG}.ml.demand_forecaster"
 
 df = spark.table(f"{CATALOG}.gold.demand_features").toPandas()

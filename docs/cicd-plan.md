@@ -19,7 +19,7 @@ Nothing below matters until these are done, and they are worth doing regardless.
 
 ```bash
 git init && git add -A && git commit -m "Initial: V1 lakehouse, D-01..D-38"
-gh repo create energy-demand-lakehouse --private --source=. --push
+gh repo create pjm-demand-lakehouse --public --source=. --push
 ```
 
 `.gitignore` already excludes `.env`, `data/`, `.venv/`. Verify before the first push —
@@ -47,17 +47,32 @@ databricks secrets put-secret energy eia_api_key
 Until this exists, CI can deploy the pipeline but cannot honestly claim it runs
 end to end.
 
-### 0.3 Service principal for prod
+### 0.3 Service principal for prod — **done** (D-40)
 
-Prod currently deploys from a laptop under a **user path** (D-35), which is orphaned
-the day that account is deprovisioned — and CI cannot authenticate as a human anyway.
+Prod deployed from a laptop under a **user path** (D-35), orphaned the day that account
+is deprovisioned — and CI cannot authenticate as a human anyway.
 
-```bash
-az ad sp create-for-rbac --name sp-energy-cicd --skip-assignment
-# grant: Storage Blob Data Contributor on container `energy`
-# add as a Databricks service principal; grant USE CATALOG / CREATE on `energy`
-# then move the prod bundle root_path off the user path
-```
+`sp-energy-cicd` now owns prod. Two things in the sketch above this replaced were wrong:
+
+**No `--skip-assignment` secret, and no storage role.** The draft said "grant Storage
+Blob Data Contributor on container `energy`". The SP never touches storage: jobs write
+ADLS through the Unity Catalog external location, whose credential is the access
+connector `ac-lakeobs`. Granting the SP a storage role would have handed CI standing
+data-plane access it has no use for. Its only Azure RBAC is **Reader on the Databricks
+workspace resource** — enough for `az login` to resolve a subscription, and short of
+Contributor, which would have auto-granted workspace admin.
+
+**"USE CATALOG / CREATE on `energy`" is not one grant but four securables.** Catalog
+privileges do not cascade to the others, and each was found by a failure:
+
+| securable | privilege | found by |
+|---|---|---|
+| catalog `energy`, `energy_dev` | `USE_CATALOG`, `CREATE_TABLE`, `MODIFY`, … | planned |
+| external location `loc-energy` | `READ_FILES`, `WRITE_FILES` | Auto Loader checkpoints address `abfss://` directly |
+| secret scope `energy` | `READ` | `ingest` failed — the EIA key lives there |
+| jobs (2) | `IS_OWNER` | the SP cannot promote itself; admin transfers once |
+
+`loc-lakeobs` — the second project in this workspace — was deliberately left ungranted.
 
 ---
 
@@ -156,8 +171,8 @@ reads the same in a log as any other string.
 Federated credential subject, scoped per environment so a PR cannot deploy prod:
 
 ```
-repo:<owner>/energy-demand-lakehouse:environment:prod
-repo:<owner>/energy-demand-lakehouse:ref:refs/heads/main
+repo:KhangLe0411/pjm-demand-lakehouse:environment:prod   # cd-prod
+repo:KhangLe0411/pjm-demand-lakehouse:ref:refs/heads/main  # cd-dev
 ```
 
 ---

@@ -1606,3 +1606,174 @@ the reading stays at zero long enough to be worth testing.
 
 Until this run the metric was computed and never surfaced — indistinguishable from one
 that was broken. It is now in the Silver task's output.
+
+## D-40 A service principal owns prod — and five securables, not one
+
+D-35 recorded prod deploying from a laptop under a user path as "the gap it is instead
+of papered over". This closes it. `sp-energy-cicd` now owns prod, authenticates to
+GitHub Actions by OIDC, and holds no long-lived secret anywhere.
+
+### The identity check that passed while being wrong
+
+Twice, a command reported success as the wrong identity:
+
+```
+$ databricks current-user me          # ARM_CLIENT_ID / ARM_TENANT_ID / ARM_CLIENT_SECRET set
+  userName: 20133050@student.hcmute.edu.vn     <- the human
+
+$ databricks bundle validate -t prod --profile cicd
+  Validation OK!                               <- still the human
+```
+
+The profile held `azure_client_id`, `azure_client_secret` and `azure_tenant_id` and was
+ignored: an `az` session was logged in, and the SDK resolved that first. Adding one line
+fixed it —
+
+```
+auth_type = azure-client-secret
+```
+
+— after which the same command returned `sp-energy-cicd`. This is the failure worth
+naming, because it does not look like one. A deploy that authenticates as a human
+succeeds, and the difference only shows up later, as a permission error on a machine
+where no human is logged in. **`auth_type` is set explicitly in CI for this reason, not
+as a formality.** Every permission claim below was re-checked after this was found; the
+checks made before it were re-run, not trusted.
+
+### The plan said one grant; it was five
+
+`docs/cicd-plan.md` sketched "grant USE CATALOG / CREATE on `energy`". Unity Catalog
+privileges do not cascade outside the catalog, and each remaining securable announced
+itself by a failure rather than by reading documentation:
+
+| securable | privilege | how it was found |
+|---|---|---|
+| catalogs `energy`, `energy_dev` | `USE_CATALOG`, `CREATE_TABLE`, `MODIFY`, … | planned |
+| external location `loc-energy` | `READ_FILES`, `WRITE_FILES` | Auto Loader checkpoints address `abfss://` directly, not through the catalog |
+| secret scope `energy` | `READ` | `ingest` failed inside `SecretManagerClient.getSecret` |
+| jobs ×2 | `IS_OWNER` | `only workspace admins can change the owner of a job` |
+| MLflow experiment | `CAN_READ` | `forecast` failed — see below |
+
+`loc-lakeobs`, the second project sharing this workspace, was deliberately left
+ungranted.
+
+The job one is worth stating plainly: **the service principal cannot promote itself.**
+Setting `run_as` to the SP requires transferring ownership, and only an admin can do
+that. One human action, once — which is the right shape. A CI identity that could grant
+itself ownership of arbitrary jobs would not be least privilege.
+
+### What the service principal deliberately cannot do
+
+The plan also said to grant it `Storage Blob Data Contributor` on the container. That
+would have been wrong. Jobs write ADLS through the Unity Catalog external location,
+whose credential is the access connector:
+
+```
+ac-lakeobs   (bafa2676…)  Storage Blob Data Contributor   stlakeobs0803
+sp-energy-cicd            Reader                          Microsoft.Databricks/workspaces/dbw-lakeobs
+```
+
+That is the SP's entire Azure RBAC — one role, on the workspace, nothing on storage.
+`Reader` and not `Contributor` on purpose: Contributor on a Databricks workspace
+resource auto-grants workspace admin. Reader is enough for `az login` to resolve a
+subscription and grants nothing else.
+
+### Moving prod without losing its history
+
+Changing `root_path` orphans the bundle's state, and a fresh deploy would have created
+new jobs and left the old ones behind — losing six runs of history. The state was
+migrated instead: three files copied from the old path to the SP's, after which the
+deploy updated the existing resources in place.
+
+```
+serial=9 preserved
+energy_daily_pipeline   646154696850115   4 runs -> 4 runs
+energy_monthly_refit     16938506529580   2 runs -> 2 runs
+```
+
+### The experiment was a notebook all along
+
+With permissions fixed, `forecast` still failed:
+
+```
+PERMISSION_DENIED: User 67fe02eb… does not have read permission for
+node with aclPath /workspace/668916921590808/…/668115645632887
+```
+
+An `aclPath` and a node id — nothing naming MLflow. The experiment holding the
+champion's run was:
+
+```
+/Users/20133050@…/.bundle/energy/prod/files/notebooks/10_refit_register
+```
+
+Nothing ever called `set_experiment`, so MLflow had defaulted to the notebook's own
+path. The experiment was therefore a **child of the bundle deployment directory**, and
+its ACL was the notebook's ACL — `Object … not a experiment` is what the experiment
+permissions API returns for it. Moving `root_path` silently severed model lineage from
+the code that produced it.
+
+The fix is an explicitly declared experiment at a fixed path, outside `.bundle/`:
+
+```
+before   object_type: notebook            ACL inherited, lifetime tied to a deploy
+after    object_type: mlflowExperiment    ACL of its own
+```
+
+It is a direct child of the SP's home, not nested under `mlflow/` — DAB does not create
+parent directories, and the first attempt failed with `Parent directory does not exist`.
+A path that needs a manual `mkdir` is a path CI trips over on a fresh workspace.
+
+### A gate for the class of bug, not the instance
+
+The cause was not a wrong value but an absent one: `experiment_path` had a default, and
+a plausible default runs. `test_every_widget_a_notebook_reads_is_passed_by_its_job`
+compares every `dbutils.widgets.get` in a notebook against the `base_parameters` its job
+actually passes. Confirmed to fail when the line is removed and pass when restored —
+a gate never seen red is not known to work.
+
+Writing it also caught a second thing, from the gate added in D-39: importing `yaml` in
+a test without declaring `pyyaml` failed `test_requirements_cover_every_third_party_import`
+immediately. That is the older gate doing exactly its job.
+
+### One more claim in the repo that was false
+
+`databricks.yml` said "Only these are synced" above `sync.include`. Listing the deployed
+`files/` showed `tests/`, `docs/` and `.github/` up there too: `include` is **additive**,
+not a whitelist. The work is done by `exclude` and `.gitignore`, which do keep `data/`
+and `.venv/` out — the claim that mattered was true, but for a different reason than the
+comment gave. Corrected in place.
+
+### The run that says it works
+
+Deployed by the service principal, run by the service principal, every task green:
+
+```
+ingest 31s  bronze 67s  silver 24s  gold 16s  features 35s
+leakage_audit 16s  forecast 49s  accuracy 21s        TERMINATED SUCCESS
+```
+
+The temporary client secret used to prove all of the above was then deleted, leaving
+the two federated credentials as the only way in:
+
+```
+cd-dev   repo:KhangLe0411/pjm-demand-lakehouse:ref:refs/heads/main
+cd-prod  repo:KhangLe0411/pjm-demand-lakehouse:environment:prod
+```
+
+`environment:prod` matches only through a GitHub Environment that requires a reviewer
+and is restricted to `main`, so a pull request cannot reach prod even from this repo.
+No `DATABRICKS_TOKEN`, and no client secret, exists in GitHub.
+
+A human admin can still `bundle validate -t prod` — checked, not assumed — so break-glass
+survives. Prod deploys are expected to come from CI; the laptop path remains open
+because being locked out of your own prod at 3am is the worse failure.
+
+### Still tied to the old path
+
+`bundle destroy` on the old user path is deliberately **not** run yet. The current
+champion (`energy.ml.demand_forecaster` v2) points at a run in the notebook-backed
+experiment that lives there; deleting the folder now would take the run with it. The
+tie breaks on its own at the next `energy_monthly_refit`, which logs to the declared
+experiment and registers a version whose lineage is in a place that does not move.
+Recorded here so the cleanup is done in the right order rather than discovered.

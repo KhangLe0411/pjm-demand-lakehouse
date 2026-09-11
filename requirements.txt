@@ -12,3 +12,5 @@ numpy
 pandas
 pyarrow
 pytest
+# Tests read resources/*.job.yml to check the job and its notebooks agree.
+pyyaml
