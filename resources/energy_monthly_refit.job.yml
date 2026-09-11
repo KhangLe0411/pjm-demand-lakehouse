@@ -1,0 +1,47 @@
+resources:
+  jobs:
+    energy_monthly_refit:
+      name: energy_monthly_refit
+      description: >-
+        Fit, score on a holdout, register a new version, and move @champion only if the
+        candidate earns it. Separate from the daily pipeline because the cadences
+        differ: fitting is monthly (D-06), inference is daily and takes seconds.
+        Registering is not promoting — drift was measured (D-29), so a refit is not
+        automatically an improvement.
+      tags:
+        project: energy
+      queue:
+        enabled: true
+      max_concurrent_runs: 1
+
+      # Declared here rather than installed with %pip in the notebook. Measured: the
+      # in-notebook install plus restartPython() accounted for ~41 s of a 78 s task —
+      # more than everything the notebook actually does. Serverless prepares a declared
+      # environment before the task starts and no interpreter restart is needed.
+      #
+      # Only the tasks that need them carry this; the Spark-only tasks would pay the
+      # resolution cost for nothing.
+      environments:
+        - environment_key: ml
+          spec:
+            client: "3"
+            dependencies:
+              - xgboost==3.4.1
+              - mlflow
+
+      # 1st of the month, 03:00 — before the day's pipeline, after month end. PAUSED
+      # for the same reason as the daily job.
+      schedule:
+        quartz_cron_expression: "0 0 3 1 * ?"
+        timezone_id: America/New_York
+        pause_status: PAUSED
+
+      tasks:
+        - task_key: refit_register
+          environment_key: ml
+          notebook_task:
+            notebook_path: ../notebooks/10_refit_register.py
+            base_parameters:
+              catalog: ${var.catalog}
+              holdout_months: "2"
+              tolerance_pct: "2.0"

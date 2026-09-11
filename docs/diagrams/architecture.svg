@@ -1,0 +1,217 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1880" height="1180" viewBox="0 0 1880 1180" font-family="Segoe UI,Helvetica,Arial,sans-serif">
+<rect width="1880" height="1180" fill="#ffffff"/>
+<text x="40" y="54" font-size="24" font-weight="700" fill="#C00000">Hourly Incremental Electricity Demand Forecasting Lakehouse — PJM</text>
+<text x="42" y="79" font-size="13" fill="#555">Azure Databricks · ADLS Gen2 · Unity Catalog · EIA-930 + archived weather forecasts</text>
+<rect x="1250" y="32" width="144" height="26" rx="6" fill="#00B050" stroke="#00803A"/>
+<text x="1322" y="49" font-size="10" font-weight="600" text-anchor="middle" fill="#FFFFFF">Built + tested</text>
+<rect x="1402" y="32" width="144" height="26" rx="6" fill="#FFC000" stroke="#BF8F00"/>
+<text x="1474" y="49" font-size="10" font-weight="600" text-anchor="middle" fill="#1A1A1A">Next (M1 / M5)</text>
+<rect x="1554" y="32" width="144" height="26" rx="6" fill="#CCC0DA" stroke="#8064A2"/>
+<text x="1626" y="49" font-size="10" font-weight="600" text-anchor="middle" fill="#1A1A1A">V2</text>
+<rect x="1706" y="32" width="144" height="26" rx="6" fill="#F2F2F2" stroke="#C00000"/>
+<text x="1778" y="49" font-size="10" font-weight="600" text-anchor="middle" fill="#C00000">Excluded, on purpose</text>
+<rect x="40" y="86" width="240" height="720" fill="none" stroke="#C00000" stroke-dasharray="6 6"/>
+<text x="160.0" y="114" font-size="14" font-weight="600" text-anchor="middle" fill="#333">Data Source</text>
+<rect x="300" y="86" width="210" height="720" fill="none" stroke="#C00000" stroke-dasharray="6 6"/>
+<text x="405.0" y="114" font-size="14" font-weight="600" text-anchor="middle" fill="#333">Ingestion</text>
+<rect x="530" y="86" width="440" height="720" fill="none" stroke="#C00000" stroke-dasharray="6 6"/>
+<text x="750.0" y="114" font-size="14" font-weight="600" text-anchor="middle" fill="#333">Storage &amp; Processing</text>
+<rect x="990" y="86" width="220" height="720" fill="none" stroke="#C00000" stroke-dasharray="6 6"/>
+<text x="1100.0" y="114" font-size="14" font-weight="600" text-anchor="middle" fill="#333">Curate &amp; Serve</text>
+<rect x="1230" y="86" width="215" height="720" fill="none" stroke="#C00000" stroke-dasharray="6 6"/>
+<text x="1337.5" y="114" font-size="14" font-weight="600" text-anchor="middle" fill="#333">Analyze</text>
+<rect x="1465" y="86" width="180" height="720" fill="none" stroke="#C00000" stroke-dasharray="6 6"/>
+<text x="1555.0" y="114" font-size="14" font-weight="600" text-anchor="middle" fill="#333">Product</text>
+<rect x="1665" y="86" width="195" height="720" fill="none" stroke="#C00000" stroke-dasharray="6 6"/>
+<text x="1762.5" y="114" font-size="14" font-weight="600" text-anchor="middle" fill="#333">Consume</text>
+<rect x="52" y="150" width="216" height="76" rx="8" fill="#00B050" stroke="#00803A" stroke-width="1.4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iOS4yIiBmaWxsPSJub25lIiBzdHJva2U9IiM1QjY3NzAiIHN0cm9rZS13aWR0aD0iMS44Ii8+PGVsbGlwc2UgY3g9IjEyIiBjeT0iMTIiIHJ4PSI0IiByeT0iOS4yIiBmaWxsPSJub25lIiBzdHJva2U9IiM1QjY3NzAiIHN0cm9rZS13aWR0aD0iMS40Ii8+PHBhdGggZD0iTTMgOS40aDE4TTMgMTQuNmgxOCIgc3Ryb2tlPSIjNUI2NzcwIiBzdHJva2Utd2lkdGg9IjEuNCIvPjwvc3ZnPg==" x="61" y="177.0" width="22" height="22"/>
+<text x="89" y="169" font-size="11" font-weight="700" fill="#FFFFFF">EIA-930  ·  API v2</text>
+<text x="89" y="183.0" font-size="9" fill="#FFFFFF">D / DF / NG / TI</text>
+<text x="89" y="194.5" font-size="9" fill="#FFFFFF">hourly UTC, from 2019-01-01</text>
+<rect x="52" y="246" width="216" height="76" rx="8" fill="#00B050" stroke="#00803A" stroke-width="1.4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGNpcmNsZSBjeD0iOC41IiBjeT0iOCIgcj0iNCIgZmlsbD0iI0ZEQjgxMyIvPjxwYXRoIGQ9Ik04IDE5Yy0yLjggMC01LTItNS00LjRTNS4yIDEwIDggMTBjLjgtMi40IDMtNCA1LjYtNCAzLjQgMCA2LjEgMi41IDYuMSA1LjZsLS4xLjhjMS40LjUgMi40IDEuOCAyLjQgMy4zIDAgMi0xLjcgMy4zLTMuOCAzLjN6IiBmaWxsPSIjQzdENUUwIi8+PC9zdmc+" x="61" y="273.0" width="22" height="22"/>
+<text x="89" y="265" font-size="11" font-weight="700" fill="#FFFFFF">Open-Meteo  ·  Previous Runs</text>
+<text x="89" y="279.0" font-size="9" fill="#FFFFFF">8 PJM load-zone points</text>
+<text x="89" y="290.5" font-size="9" fill="#FFFFFF">lead 1 + 2, from 2021-03-24</text>
+<rect x="52" y="342" width="216" height="68" rx="8" fill="#F2F2F2" stroke="#C00000" stroke-width="1.4" stroke-dasharray="4 4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGNpcmNsZSBjeD0iOC41IiBjeT0iOCIgcj0iNCIgZmlsbD0iI0ZEQjgxMyIvPjxwYXRoIGQ9Ik04IDE5Yy0yLjggMC01LTItNS00LjRTNS4yIDEwIDggMTBjLjgtMi40IDMtNCA1LjYtNCAzLjQgMCA2LjEgMi41IDYuMSA1LjZsLS4xLjhjMS40LjUgMi40IDEuOCAyLjQgMy4zIDAgMi0xLjcgMy4zLTMuOCAzLjN6IiBmaWxsPSIjQzdENUUwIi8+PC9zdmc+" x="61" y="365.0" width="22" height="22"/>
+<text x="89" y="361" font-size="11" font-weight="700" fill="#C00000">Historical Forecast API</text>
+<text x="89" y="375.0" font-size="9" fill="#444">stitched short-lead → leaks</text>
+<text x="89" y="386.5" font-size="9" fill="#444">observed weather only</text>
+<rect x="312" y="150" width="186" height="76" rx="8" fill="#00B050" stroke="#00803A" stroke-width="1.4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTExLjkgMmMtMi42IDAtNC40LjktNC40IDN2Mi4yaDQuNnYuOEg1LjZDMy42IDggMiA5LjQgMiAxMi4yczEuNCA0IDMuNCA0aDEuNnYtMi42YzAtMiAxLjYtMy40IDMuNi0zLjRoNC4yYzEuNyAwIDMtMS4zIDMtM1Y1YzAtMS45LTEuNy0zLTMuOS0zeiIgZmlsbD0iIzM3NzZBQiIvPjxwYXRoIGQ9Ik0xMi4xIDIyYzIuNiAwIDQuNC0uOSA0LjQtM3YtMi4yaC00LjZ2LS44aDYuNWMyIDAgMy42LTEuNCAzLjYtNC4ycy0xLjQtNC0zLjQtNGgtMS42djIuNmMwIDItMS42IDMuNC0zLjYgMy40SDkuMmMtMS43IDAtMyAxLjMtMyAzVjE5YzAgMS45IDEuNyAzIDMuOSAzeiIgZmlsbD0iI0ZGRDQzQiIvPjwvc3ZnPg==" x="321" y="177.0" width="22" height="22"/>
+<text x="349" y="169" font-size="11" font-weight="700" fill="#FFFFFF">eia_client.py</text>
+<text x="349" y="183.0" font-size="9" fill="#FFFFFF">pagination · retry/backoff</text>
+<text x="349" y="194.5" font-size="9" fill="#FFFFFF">backfill + incremental</text>
+<rect x="312" y="246" width="186" height="76" rx="8" fill="#00B050" stroke="#00803A" stroke-width="1.4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTExLjkgMmMtMi42IDAtNC40LjktNC40IDN2Mi4yaDQuNnYuOEg1LjZDMy42IDggMiA5LjQgMiAxMi4yczEuNCA0IDMuNCA0aDEuNnYtMi42YzAtMiAxLjYtMy40IDMuNi0zLjRoNC4yYzEuNyAwIDMtMS4zIDMtM1Y1YzAtMS45LTEuNy0zLTMuOS0zeiIgZmlsbD0iIzM3NzZBQiIvPjxwYXRoIGQ9Ik0xMi4xIDIyYzIuNiAwIDQuNC0uOSA0LjQtM3YtMi4yaC00LjZ2LS44aDYuNWMyIDAgMy42LTEuNCAzLjYtNC4ycy0xLjQtNC0zLjQtNGgtMS42djIuNmMwIDItMS42IDMuNC0zLjYgMy40SDkuMmMtMS43IDAtMyAxLjMtMyAzVjE5YzAgMS45IDEuNyAzIDMuOSAzeiIgZmlsbD0iI0ZGRDQzQiIvPjwvc3ZnPg==" x="321" y="273.0" width="22" height="22"/>
+<text x="349" y="265" font-size="11" font-weight="700" fill="#FFFFFF">weather_client.py</text>
+<text x="349" y="279.0" font-size="9" fill="#FFFFFF">8 points per call</text>
+<text x="349" y="290.5" font-size="9" fill="#FFFFFF">6-month chunks</text>
+<rect x="312" y="342" width="186" height="56" rx="8" fill="#CCC0DA" stroke="#8064A2" stroke-width="1.4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTkuNiAyLjUgMyAxOC4ybDQuNi4xTDE0LjYgMi41eiIgZmlsbD0iIzAwNzhENCIvPjxwYXRoIGQ9Ik0xMi40IDYuNCAyMS41IDIxLjVINi45bDYtMi4yLTMuMy00eiIgZmlsbD0iIzAwNzhENCIgb3BhY2l0eT0iLjciLz48L3N2Zz4=" x="321" y="359.0" width="22" height="22"/>
+<text x="349" y="374.0" font-size="11" font-weight="700" fill="#1A1A1A">Azure Function  ·  hourly</text>
+<rect x="312" y="418" width="186" height="56" rx="8" fill="#F2F2F2" stroke="#C00000" stroke-width="1.4" stroke-dasharray="4 4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGNpcmNsZSBjeD0iNiIgY3k9IjYiIHI9IjIuNCIgZmlsbD0iIzdGOEM4RCIvPjxjaXJjbGUgY3g9IjYiIGN5PSIxOCIgcj0iMi40IiBmaWxsPSIjN0Y4QzhEIi8+PGNpcmNsZSBjeD0iMTgiIGN5PSIxMiIgcj0iMi40IiBmaWxsPSIjN0Y4QzhEIi8+PHBhdGggZD0iTTguMiA3IDE1LjggMTFNOC4yIDE3bDcuNi00IiBzdHJva2U9IiM3RjhDOEQiIHN0cm9rZS13aWR0aD0iMS42Ii8+PC9zdmc+" x="321" y="435.0" width="22" height="22"/>
+<text x="349" y="437" font-size="11" font-weight="700" fill="#C00000">Kafka / Event Hubs</text>
+<text x="349" y="451.0" font-size="9" fill="#444">no continuous compute in V1</text>
+<rect x="542" y="150" width="416" height="76" rx="8" fill="#00B050" stroke="#00803A" stroke-width="1.4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTMgNmgxOHY0SDN6IiBmaWxsPSIjMDA3OEQ0Ii8+PHBhdGggZD0iTTMgMTBoMTh2NEgzeiIgZmlsbD0iIzUwQjBFOCIvPjxwYXRoIGQ9Ik0zIDE0aDE4djRIM3oiIGZpbGw9IiMwMDc4RDQiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTguNSIgY3k9IjgiIHI9IjEiIGZpbGw9IiNmZmYiLz48Y2lyY2xlIGN4PSIxOC41IiBjeT0iMTIiIHI9IjEiIGZpbGw9IiNmZmYiLz48Y2lyY2xlIGN4PSIxOC41IiBjeT0iMTYiIHI9IjEiIGZpbGw9IiNmZmYiLz48L3N2Zz4=" x="551" y="177.0" width="22" height="22"/>
+<text x="579" y="169" font-size="11" font-weight="700" fill="#FFFFFF">ADLS Gen2  ·  landing/</text>
+<text x="579" y="183.0" font-size="9" fill="#FFFFFF">Parquet, date-partitioned</text>
+<text x="579" y="194.5" font-size="9" fill="#FFFFFF">one file per (date, run)</text>
+<rect x="542" y="246" width="416" height="76" rx="8" fill="#00B050" stroke="#00803A" stroke-width="1.4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTIgMTUuNCAxMiAyMSAyMiAxNS40djIuNEwxMiAyMy40IDIgMTcuOHoiIGZpbGw9IiNGRjM2MjEiLz48cGF0aCBkPSJNMiAxMS4yIDEyIDE2LjggMjIgMTEuMnYyLjRMMTIgMTkuMiAyIDEzLjZ6IiBmaWxsPSIjRkYzNjIxIiBvcGFjaXR5PSIuNzUiLz48cGF0aCBkPSJNMiA3IDEyIDEyLjYgMjIgN3YyLjRMMTIgMTUgMiA5LjR6IiBmaWxsPSIjRkYzNjIxIiBvcGFjaXR5PSIuNSIvPjxwYXRoIGQ9Ik0xMiAxIDIyIDYuNiAxMiAxMi4yIDIgNi42eiIgZmlsbD0iI0ZGMzYyMSIvPjwvc3ZnPg==" x="551" y="273.0" width="22" height="22"/>
+<text x="579" y="265" font-size="11" font-weight="700" fill="#FFFFFF">Auto Loader  ·  cloudFiles</text>
+<text x="579" y="279.0" font-size="9" fill="#FFFFFF">directory listing · availableNow</text>
+<text x="579" y="290.5" font-size="9" fill="#FFFFFF">idempotent, asserted</text>
+<rect x="542" y="342" width="416" height="76" rx="8" fill="#00B050" stroke="#00803A" stroke-width="1.4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyIDIgMjIgMTlIMnoiIGZpbGw9IiMwMEFERDQiLz48cGF0aCBkPSJNNC42IDE1aDE0LjhsMS4yIDJIMy40eiIgZmlsbD0iIzAwM0Q0RCIgb3BhY2l0eT0iLjU1Ii8+PHBhdGggZD0iTTIgMjAuNGMzLTEuNSA1LTEuNSA4IDBzNSAxLjUgOCAwdjJjLTMgMS41LTUgMS41LTggMHMtNS0xLjUtOCAweiIgZmlsbD0iIzAwQURENCIgb3BhY2l0eT0iLjciLz48L3N2Zz4=" x="551" y="369.0" width="22" height="22"/>
+<text x="579" y="361" font-size="11" font-weight="700" fill="#FFFFFF">bronze.eia_region_data</text>
+<text x="579" y="375.0" font-size="9" fill="#FFFFFF">271,989 + 777,600 rows</text>
+<text x="579" y="386.5" font-size="9" fill="#FFFFFF">value stays STRING</text>
+<rect x="542" y="438" width="416" height="86" rx="8" fill="#00B050" stroke="#00803A" stroke-width="1.4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyIDIgMjIgMTlIMnoiIGZpbGw9IiMwMEFERDQiLz48cGF0aCBkPSJNNC42IDE1aDE0LjhsMS4yIDJIMy40eiIgZmlsbD0iIzAwM0Q0RCIgb3BhY2l0eT0iLjU1Ii8+PHBhdGggZD0iTTIgMjAuNGMzLTEuNSA1LTEuNSA4IDBzNSAxLjUgOCAwdjJjLTMgMS41LTUgMS41LTggMHMtNS0xLjUtOCAweiIgZmlsbD0iIzAwQURENCIgb3BhY2l0eT0iLjciLz48L3N2Zz4=" x="551" y="470.0" width="22" height="22"/>
+<text x="579" y="457" font-size="11" font-weight="700" fill="#FFFFFF">silver.electricity_hourly</text>
+<text x="579" y="471.0" font-size="9" fill="#FFFFFF">gap-free UTC spine · 67,375</text>
+<text x="579" y="482.5" font-size="9" fill="#FFFFFF">revisions resolved · DF aligned</text>
+<rect x="542" y="538" width="416" height="76" rx="8" fill="#00B050" stroke="#00803A" stroke-width="1.4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyIDIgMjIgMTlIMnoiIGZpbGw9IiMwMEFERDQiLz48cGF0aCBkPSJNNC42IDE1aDE0LjhsMS4yIDJIMy40eiIgZmlsbD0iIzAwM0Q0RCIgb3BhY2l0eT0iLjU1Ii8+PHBhdGggZD0iTTIgMjAuNGMzLTEuNSA1LTEuNSA4IDBzNSAxLjUgOCAwdjJjLTMgMS41LTUgMS41LTggMHMtNS0xLjUtOCAweiIgZmlsbD0iIzAwQURENCIgb3BhY2l0eT0iLjciLz48L3N2Zz4=" x="551" y="565.0" width="22" height="22"/>
+<text x="579" y="557" font-size="11" font-weight="700" fill="#FFFFFF">silver.weather_forecast_hourly</text>
+<text x="579" y="571.0" font-size="9" fill="#FFFFFF">765,696 rows · CDD/HDD</text>
+<text x="579" y="582.5" font-size="9" fill="#FFFFFF">both vintages kept</text>
+<rect x="542" y="628" width="416" height="66" rx="8" fill="#00B050" stroke="#00803A" stroke-width="1.4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iOS40IiBmaWxsPSJub25lIiBzdHJva2U9IiNCODU0NTAiIHN0cm9rZS13aWR0aD0iMi4yIi8+PHBhdGggZD0iTTUuNiA1LjYgMTguNCAxOC40IiBzdHJva2U9IiNCODU0NTAiIHN0cm9rZS13aWR0aD0iMi4yIi8+PC9zdmc+" x="551" y="650.0" width="22" height="22"/>
+<text x="579" y="647" font-size="11" font-weight="700" fill="#FFFFFF">silver.…_quarantine</text>
+<text x="579" y="661.0" font-size="9" fill="#FFFFFF">7 rows · reason + raw text</text>
+<rect x="1002" y="150" width="196" height="86" rx="8" fill="#00B050" stroke="#00803A" stroke-width="1.4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyIDIgMjIgMTlIMnoiIGZpbGw9IiMwMEFERDQiLz48cGF0aCBkPSJNNC42IDE1aDE0LjhsMS4yIDJIMy40eiIgZmlsbD0iIzAwM0Q0RCIgb3BhY2l0eT0iLjU1Ii8+PHBhdGggZD0iTTIgMjAuNGMzLTEuNSA1LTEuNSA4IDBzNSAxLjUgOCAwdjJjLTMgMS41LTUgMS41LTggMHMtNS0xLjUtOCAweiIgZmlsbD0iIzAwQURENCIgb3BhY2l0eT0iLjciLz48L3N2Zz4=" x="1011" y="182.0" width="22" height="22"/>
+<text x="1039" y="169" font-size="11" font-weight="700" fill="#FFFFFF">gold.daily_summary</text>
+<text x="1039" y="183.0" font-size="9" fill="#FFFFFF">2,809 local operating days</text>
+<text x="1039" y="194.5" font-size="9" fill="#FFFFFF">expected_hours 23/24/25</text>
+<rect x="1002" y="250" width="196" height="100" rx="8" fill="#00B050" stroke="#00803A" stroke-width="1.4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyIDIgMjIgMTlIMnoiIGZpbGw9IiMwMEFERDQiLz48cGF0aCBkPSJNNC42IDE1aDE0LjhsMS4yIDJIMy40eiIgZmlsbD0iIzAwM0Q0RCIgb3BhY2l0eT0iLjU1Ii8+PHBhdGggZD0iTTIgMjAuNGMzLTEuNSA1LTEuNSA4IDBzNSAxLjUgOCAwdjJjLTMgMS41LTUgMS41LTggMHMtNS0xLjUtOCAweiIgZmlsbD0iIzAwQURENCIgb3BhY2l0eT0iLjciLz48L3N2Zz4=" x="1011" y="289.0" width="22" height="22"/>
+<text x="1039" y="269" font-size="11" font-weight="700" fill="#FFFFFF">gold.demand_features</text>
+<text x="1039" y="283.0" font-size="9" fill="#FFFFFF">47,832 rows · 33 features</text>
+<text x="1039" y="294.5" font-size="9" fill="#FFFFFF">cutoff-anchored · 0 leakage</text>
+<rect x="1242" y="150" width="191" height="56" rx="8" fill="#00B050" stroke="#00803A" stroke-width="1.4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI0IiByPSIyLjYiIGZpbGw9IiMzMzdBQjciLz48Y2lyY2xlIGN4PSI2IiBjeT0iMTMiIHI9IjIuNiIgZmlsbD0iIzVCQTNEMCIvPjxjaXJjbGUgY3g9IjE4IiBjeT0iMTMiIHI9IjIuNiIgZmlsbD0iIzVCQTNEMCIvPjxjaXJjbGUgY3g9IjMuNCIgY3k9IjIxIiByPSIyLjIiIGZpbGw9IiM5RkM3RTMiLz48Y2lyY2xlIGN4PSI5IiBjeT0iMjEiIHI9IjIuMiIgZmlsbD0iIzlGQzdFMyIvPjxjaXJjbGUgY3g9IjIwLjYiIGN5PSIyMSIgcj0iMi4yIiBmaWxsPSIjOUZDN0UzIi8+PHBhdGggZD0iTTEyIDYuNiA2IDEwLjRNMTIgNi42bDYgMy44TTYgMTUuNmwtMi42IDMuMk02IDE1LjYgOSAxOC44TTE4IDE1LjZsMi42IDMuMiIgc3Ryb2tlPSIjMzM3QUI3IiBzdHJva2Utd2lkdGg9IjEuMyIgZmlsbD0ibm9uZSIvPjwvc3ZnPg==" x="1251" y="167.0" width="22" height="22"/>
+<text x="1279" y="169" font-size="11" font-weight="700" fill="#FFFFFF">Seasonal naive  ·  lag-168</text>
+<text x="1279" y="183.0" font-size="9" fill="#FFFFFF">MAPE 8.560%</text>
+<rect x="1242" y="220" width="191" height="76" rx="8" fill="#00B050" stroke="#00803A" stroke-width="1.4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iOS4yIiBmaWxsPSJub25lIiBzdHJva2U9IiM1QjY3NzAiIHN0cm9rZS13aWR0aD0iMS44Ii8+PGVsbGlwc2UgY3g9IjEyIiBjeT0iMTIiIHJ4PSI0IiByeT0iOS4yIiBmaWxsPSJub25lIiBzdHJva2U9IiM1QjY3NzAiIHN0cm9rZS13aWR0aD0iMS40Ii8+PHBhdGggZD0iTTMgOS40aDE4TTMgMTQuNmgxOCIgc3Ryb2tlPSIjNUI2NzcwIiBzdHJva2Utd2lkdGg9IjEuNCIvPjwvc3ZnPg==" x="1251" y="247.0" width="22" height="22"/>
+<text x="1279" y="239" font-size="11" font-weight="700" fill="#FFFFFF">EIA DF benchmark</text>
+<text x="1279" y="253.0" font-size="9" fill="#FFFFFF">aligned · MAPE 2.435%</text>
+<text x="1279" y="264.5" font-size="9" fill="#FFFFFF">peak-timing hit 62.5%</text>
+<rect x="1242" y="310" width="191" height="56" rx="8" fill="#00B050" stroke="#00803A" stroke-width="1.4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI0IiByPSIyLjYiIGZpbGw9IiMzMzdBQjciLz48Y2lyY2xlIGN4PSI2IiBjeT0iMTMiIHI9IjIuNiIgZmlsbD0iIzVCQTNEMCIvPjxjaXJjbGUgY3g9IjE4IiBjeT0iMTMiIHI9IjIuNiIgZmlsbD0iIzVCQTNEMCIvPjxjaXJjbGUgY3g9IjMuNCIgY3k9IjIxIiByPSIyLjIiIGZpbGw9IiM5RkM3RTMiLz48Y2lyY2xlIGN4PSI5IiBjeT0iMjEiIHI9IjIuMiIgZmlsbD0iIzlGQzdFMyIvPjxjaXJjbGUgY3g9IjIwLjYiIGN5PSIyMSIgcj0iMi4yIiBmaWxsPSIjOUZDN0UzIi8+PHBhdGggZD0iTTEyIDYuNiA2IDEwLjRNMTIgNi42bDYgMy44TTYgMTUuNmwtMi42IDMuMk02IDE1LjYgOSAxOC44TTE4IDE1LjZsMi42IDMuMiIgc3Ryb2tlPSIjMzM3QUI3IiBzdHJva2Utd2lkdGg9IjEuMyIgZmlsbD0ibm9uZSIvPjwvc3ZnPg==" x="1251" y="327.0" width="22" height="22"/>
+<text x="1279" y="329" font-size="11" font-weight="700" fill="#FFFFFF">XGBoost A  ·  no weather</text>
+<text x="1279" y="343.0" font-size="9" fill="#FFFFFF">MAE 5,203 · MAPE 5.299%</text>
+<rect x="1242" y="380" width="191" height="56" rx="8" fill="#00B050" stroke="#00803A" stroke-width="1.4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI0IiByPSIyLjYiIGZpbGw9IiMzMzdBQjciLz48Y2lyY2xlIGN4PSI2IiBjeT0iMTMiIHI9IjIuNiIgZmlsbD0iIzVCQTNEMCIvPjxjaXJjbGUgY3g9IjE4IiBjeT0iMTMiIHI9IjIuNiIgZmlsbD0iIzVCQTNEMCIvPjxjaXJjbGUgY3g9IjMuNCIgY3k9IjIxIiByPSIyLjIiIGZpbGw9IiM5RkM3RTMiLz48Y2lyY2xlIGN4PSI5IiBjeT0iMjEiIHI9IjIuMiIgZmlsbD0iIzlGQzdFMyIvPjxjaXJjbGUgY3g9IjIwLjYiIGN5PSIyMSIgcj0iMi4yIiBmaWxsPSIjOUZDN0UzIi8+PHBhdGggZD0iTTEyIDYuNiA2IDEwLjRNMTIgNi42bDYgMy44TTYgMTUuNmwtMi42IDMuMk02IDE1LjYgOSAxOC44TTE4IDE1LjZsMi42IDMuMiIgc3Ryb2tlPSIjMzM3QUI3IiBzdHJva2Utd2lkdGg9IjEuMyIgZmlsbD0ibm9uZSIvPjwvc3ZnPg==" x="1251" y="397.0" width="22" height="22"/>
+<text x="1279" y="399" font-size="11" font-weight="700" fill="#FFFFFF">XGBoost B  ·  + weather</text>
+<text x="1279" y="413.0" font-size="9" fill="#FFFFFF">MAE 2,581 · +12.5% vs bench</text>
+<rect x="1242" y="450" width="191" height="66" rx="8" fill="#00B050" stroke="#00803A" stroke-width="1.4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSI0IiByPSIyLjYiIGZpbGw9IiMzMzdBQjciLz48Y2lyY2xlIGN4PSI2IiBjeT0iMTMiIHI9IjIuNiIgZmlsbD0iIzVCQTNEMCIvPjxjaXJjbGUgY3g9IjE4IiBjeT0iMTMiIHI9IjIuNiIgZmlsbD0iIzVCQTNEMCIvPjxjaXJjbGUgY3g9IjMuNCIgY3k9IjIxIiByPSIyLjIiIGZpbGw9IiM5RkM3RTMiLz48Y2lyY2xlIGN4PSI5IiBjeT0iMjEiIHI9IjIuMiIgZmlsbD0iIzlGQzdFMyIvPjxjaXJjbGUgY3g9IjIwLjYiIGN5PSIyMSIgcj0iMi4yIiBmaWxsPSIjOUZDN0UzIi8+PHBhdGggZD0iTTEyIDYuNiA2IDEwLjRNMTIgNi42bDYgMy44TTYgMTUuNmwtMi42IDMuMk02IDE1LjYgOSAxOC44TTE4IDE1LjZsMi42IDMuMiIgc3Ryb2tlPSIjMzM3QUI3IiBzdHJva2Utd2lkdGg9IjEuMyIgZmlsbD0ibm9uZSIvPjwvc3ZnPg==" x="1251" y="472.0" width="22" height="22"/>
+<text x="1279" y="469" font-size="11" font-weight="700" fill="#FFFFFF">Rolling-origin backtest</text>
+<text x="1279" y="483.0" font-size="9" fill="#FFFFFF">monthly refit</text>
+<rect x="1477" y="150" width="156" height="92" rx="8" fill="#00B050" stroke="#00803A" stroke-width="1.4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyIDIgMi40IDE5LjVoNi4yTDEyIDEzbDMuNCA2LjVoNi4yeiIgZmlsbD0iIzAxOTRFMiIvPjxjaXJjbGUgY3g9IjEyIiBjeT0iNy42IiByPSIyLjQiIGZpbGw9IiM0M0M5RUQiLz48L3N2Zz4=" x="1486" y="185.0" width="22" height="22"/>
+<text x="1514" y="169" font-size="11" font-weight="700" fill="#FFFFFF">MLflow Registry · UC</text>
+<text x="1514" y="183.0" font-size="9" fill="#FFFFFF">energy.ml.demand_forecaster</text>
+<text x="1514" y="194.5" font-size="9" fill="#FFFFFF">@champion · promotion gated</text>
+<text x="1514" y="206.0" font-size="9" fill="#FFFFFF">separate monthly refit</text>
+<rect x="1477" y="262" width="156" height="60" rx="8" fill="#00B050" stroke="#00803A" stroke-width="1.4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyIDIgMjIgMTlIMnoiIGZpbGw9IiMwMEFERDQiLz48cGF0aCBkPSJNNC42IDE1aDE0LjhsMS4yIDJIMy40eiIgZmlsbD0iIzAwM0Q0RCIgb3BhY2l0eT0iLjU1Ii8+PHBhdGggZD0iTTIgMjAuNGMzLTEuNSA1LTEuNSA4IDBzNSAxLjUgOCAwdjJjLTMgMS41LTUgMS41LTggMHMtNS0xLjUtOCAweiIgZmlsbD0iIzAwQURENCIgb3BhY2l0eT0iLjciLz48L3N2Zz4=" x="1486" y="281.0" width="22" height="22"/>
+<text x="1514" y="281" font-size="11" font-weight="700" fill="#FFFFFF">gold.forecast_run</text>
+<text x="1514" y="295.0" font-size="9" fill="#FFFFFF">cutoff · model_version</text>
+<rect x="1477" y="336" width="156" height="60" rx="8" fill="#00B050" stroke="#00803A" stroke-width="1.4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyIDIgMjIgMTlIMnoiIGZpbGw9IiMwMEFERDQiLz48cGF0aCBkPSJNNC42IDE1aDE0LjhsMS4yIDJIMy40eiIgZmlsbD0iIzAwM0Q0RCIgb3BhY2l0eT0iLjU1Ii8+PHBhdGggZD0iTTIgMjAuNGMzLTEuNSA1LTEuNSA4IDBzNSAxLjUgOCAwdjJjLTMgMS41LTUgMS41LTggMHMtNS0xLjUtOCAweiIgZmlsbD0iIzAwQURENCIgb3BhY2l0eT0iLjciLz48L3N2Zz4=" x="1486" y="355.0" width="22" height="22"/>
+<text x="1514" y="355" font-size="11" font-weight="700" fill="#FFFFFF">gold.forecast_prediction</text>
+<text x="1514" y="369.0" font-size="9" fill="#FFFFFF">predicted_p50</text>
+<rect x="1477" y="410" width="156" height="76" rx="8" fill="#00B050" stroke="#00803A" stroke-width="1.4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyIDIgMjIgMTlIMnoiIGZpbGw9IiMwMEFERDQiLz48cGF0aCBkPSJNNC42IDE1aDE0LjhsMS4yIDJIMy40eiIgZmlsbD0iIzAwM0Q0RCIgb3BhY2l0eT0iLjU1Ii8+PHBhdGggZD0iTTIgMjAuNGMzLTEuNSA1LTEuNSA4IDBzNSAxLjUgOCAwdjJjLTMgMS41LTUgMS41LTggMHMtNS0xLjUtOCAweiIgZmlsbD0iIzAwQURENCIgb3BhY2l0eT0iLjciLz48L3N2Zz4=" x="1486" y="437.0" width="22" height="22"/>
+<text x="1514" y="429" font-size="11" font-weight="700" fill="#FFFFFF">gold.forecast_accuracy</text>
+<text x="1514" y="443.0" font-size="9" fill="#FFFFFF">is_in_sample: ops =/= capability</text>
+<rect x="1677" y="150" width="171" height="86" rx="8" fill="#CCC0DA" stroke="#8064A2" stroke-width="1.4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3QgeD0iMyIgeT0iMTMiIHdpZHRoPSI0LjYiIGhlaWdodD0iOSIgcng9IjEiIGZpbGw9IiNGMkM4MTEiLz48cmVjdCB4PSI5LjciIHk9IjciIHdpZHRoPSI0LjYiIGhlaWdodD0iMTUiIHJ4PSIxIiBmaWxsPSIjRjJDODExIiBvcGFjaXR5PSIuODUiLz48cmVjdCB4PSIxNi40IiB5PSIyIiB3aWR0aD0iNC42IiBoZWlnaHQ9IjIwIiByeD0iMSIgZmlsbD0iI0YyQzgxMSIvPjwvc3ZnPg==" x="1686" y="182.0" width="22" height="22"/>
+<text x="1714" y="169" font-size="11" font-weight="700" fill="#1A1A1A">Power BI  ·  Import mode</text>
+<text x="1714" y="183.0" font-size="9" fill="#444">spec + DAX + preview</text>
+<text x="1714" y="194.5" font-size="9" fill="#444">.pbix authored in Desktop</text>
+<rect x="1677" y="250" width="171" height="76" rx="8" fill="#F2F2F2" stroke="#C00000" stroke-width="1.4" stroke-dasharray="4 4"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGVsbGlwc2UgY3g9IjEyIiBjeT0iNS41IiByeD0iOC40IiByeT0iMy4yIiBmaWxsPSIjOEZBOEI4Ii8+PHBhdGggZD0iTTMuNiA1LjV2MTNjMCAxLjggMy44IDMuMiA4LjQgMy4yczguNC0xLjQgOC40LTMuMnYtMTMiIGZpbGw9IiNCOUNCRDYiLz48ZWxsaXBzZSBjeD0iMTIiIGN5PSIxOC41IiByeD0iOC40IiByeT0iMy4yIiBmaWxsPSIjOEZBOEI4IiBvcGFjaXR5PSIuNTUiLz48L3N2Zz4=" x="1686" y="277.0" width="22" height="22"/>
+<text x="1714" y="269" font-size="11" font-weight="700" fill="#C00000">SQL Warehouse</text>
+<text x="1714" y="283.0" font-size="9" fill="#444">~$2.8/h serverless</text>
+<text x="1714" y="294.5" font-size="9" fill="#444">would consume the credit</text>
+<path d="M 268 188.0 H 290.0 V 188.0 H 305" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 312 188.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<path d="M 268 284.0 H 290.0 V 284.0 H 305" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 312 284.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<path d="M 498 188.0 H 520.0 V 188.0 H 535" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 542 188.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<path d="M 498 284.0 H 520.0 V 188.0 H 535" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 542 188.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<path d="M 498 370.0 H 520.0 V 188.0 H 535" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 542 188.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<path d="M 958 188.0 H 750.0 V 284.0 H 535" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 542 284.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<path d="M 958 284.0 H 750.0 V 380.0 H 535" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 542 380.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<path d="M 958 380.0 H 750.0 V 481.0 H 535" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 542 481.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<path d="M 958 380.0 H 750.0 V 661.0 H 535" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 542 661.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<path d="M 958 481.0 H 980.0 V 193.0 H 995" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 1002 193.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<path d="M 958 481.0 H 980.0 V 300.0 H 995" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 1002 300.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<path d="M 958 576.0 H 980.0 V 300.0 H 995" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 1002 300.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<path d="M 1198 193.0 H 1220.0 V 258.0 H 1235" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 1242 258.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<path d="M 1198 300.0 H 1220.0 V 338.0 H 1235" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 1242 338.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<path d="M 1198 300.0 H 1220.0 V 408.0 H 1235" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 1242 408.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<path d="M 1433 178.0 H 1337.5 V 483.0 H 1235" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 1242 483.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<path d="M 1433 258.0 H 1337.5 V 483.0 H 1235" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 1242 483.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<path d="M 1433 338.0 H 1337.5 V 483.0 H 1235" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 1242 483.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<path d="M 1433 408.0 H 1337.5 V 483.0 H 1235" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 1242 483.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<path d="M 1433 483.0 H 1455.0 V 196.0 H 1470" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 1477 196.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<path d="M 1633 196.0 H 1555.0 V 292.0 H 1470" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 1477 292.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<path d="M 1633 292.0 H 1555.0 V 366.0 H 1470" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 1477 366.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<path d="M 1633 366.0 H 1555.0 V 448.0 H 1470" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 1477 448.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<path d="M 1633 448.0 H 1655.0 V 193.0 H 1670" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 1677 193.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<path d="M 1198 193.0 H 1437.5 V 193.0 H 1670" fill="none" stroke="#7F8C8D" stroke-width="1.5"/>
+<path d="M 1677 193.0 l -7 -4 l 0 8 z" fill="#7F8C8D"/>
+<rect x="40" y="826" width="1800" height="56" rx="6" fill="#F4F8FC" stroke="#6C8EBF"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTMgNmgxOHY0SDN6IiBmaWxsPSIjMDA3OEQ0Ii8+PHBhdGggZD0iTTMgMTBoMTh2NEgzeiIgZmlsbD0iIzUwQjBFOCIvPjxwYXRoIGQ9Ik0zIDE0aDE4djRIM3oiIGZpbGw9IiMwMDc4RDQiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTguNSIgY3k9IjgiIHI9IjEiIGZpbGw9IiNmZmYiLz48Y2lyY2xlIGN4PSIxOC41IiBjeT0iMTIiIHI9IjEiIGZpbGw9IiNmZmYiLz48Y2lyY2xlIGN4PSIxOC41IiBjeT0iMTYiIHI9IjEiIGZpbGw9IiNmZmYiLz48L3N2Zz4=" x="52" y="844.0" width="20" height="20"/>
+<text x="82" y="849" font-size="11" font-weight="700" fill="#1a1a1a">Data Quality — three layers, because relative and absolute tests fail differently</text>
+<text x="82" y="868" font-size="10" fill="#333">hard bound → QUARANTINE (7 rows)   ·   same clock hour ±24h → FLAG (9)   ·   historical ceiling 165,563 MW → FLAG</text>
+<rect x="40" y="892" width="1800" height="56" rx="6" fill="#F4F8FC" stroke="#6C8EBF"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iOS4yIiBmaWxsPSJub25lIiBzdHJva2U9IiM1QjY3NzAiIHN0cm9rZS13aWR0aD0iMS44Ii8+PGVsbGlwc2UgY3g9IjEyIiBjeT0iMTIiIHJ4PSI0IiByeT0iOS4yIiBmaWxsPSJub25lIiBzdHJva2U9IiM1QjY3NzAiIHN0cm9rZS13aWR0aD0iMS40Ii8+PHBhdGggZD0iTTMgOS40aDE4TTMgMTQuNmgxOCIgc3Ryb2tlPSIjNUI2NzcwIiBzdHJva2Utd2lkdGg9IjEuNCIvPjwvc3ZnPg==" x="52" y="910.0" width="20" height="20"/>
+<text x="82" y="915" font-size="11" font-weight="700" fill="#1a1a1a">Leakage control — mechanical, not a review step</text>
+<text x="82" y="934" font-size="10" fill="#333">FeatureSpec declares provenance → audit() checks availability vs cutoff → 47,832 pairs, 0 violations   ·   5 known-leaky features asserted CAUGHT</text>
+<rect x="40" y="958" width="1800" height="56" rx="6" fill="#F4F8FC" stroke="#6C8EBF"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTIgMTUuNCAxMiAyMSAyMiAxNS40djIuNEwxMiAyMy40IDIgMTcuOHoiIGZpbGw9IiNGRjM2MjEiLz48cGF0aCBkPSJNMiAxMS4yIDEyIDE2LjggMjIgMTEuMnYyLjRMMTIgMTkuMiAyIDEzLjZ6IiBmaWxsPSIjRkYzNjIxIiBvcGFjaXR5PSIuNzUiLz48cGF0aCBkPSJNMiA3IDEyIDEyLjYgMjIgN3YyLjRMMTIgMTUgMiA5LjR6IiBmaWxsPSIjRkYzNjIxIiBvcGFjaXR5PSIuNSIvPjxwYXRoIGQ9Ik0xMiAxIDIyIDYuNiAxMiAxMi4yIDIgNi42eiIgZmlsbD0iI0ZGMzYyMSIvPjwvc3ZnPg==" x="52" y="976.0" width="20" height="20"/>
+<text x="82" y="981" font-size="11" font-weight="700" fill="#1a1a1a">Unity Catalog — catalog `energy` · schemas bronze / silver / gold / ml</text>
+<text x="82" y="1000" font-size="10" fill="#333">external location loc-energy → abfss://energy@stlakeobs0803   ·   credential cred-lakeobs   ·   Predictive Optimization DISABLED</text>
+<rect x="40" y="1024" width="1800" height="56" rx="6" fill="#F4F8FC" stroke="#6C8EBF"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTkuNiAyLjUgMyAxOC4ybDQuNi4xTDE0LjYgMi41eiIgZmlsbD0iIzAwNzhENCIvPjxwYXRoIGQ9Ik0xMi40IDYuNCAyMS41IDIxLjVINi45bDYtMi4yLTMuMy00eiIgZmlsbD0iIzAwNzhENCIgb3BhY2l0eT0iLjciLz48L3N2Zz4=" x="52" y="1042.0" width="20" height="20"/>
+<text x="82" y="1047" font-size="11" font-weight="700" fill="#1a1a1a">Cost guardrails — $100 student credit</text>
+<text x="82" y="1066" font-size="10" fill="#333">serverless-only workspace, so no idle billing (D-32)   ·   measured: ~35 s notebook + 40-60 s env floor (D-38)   ·   ~90% of the work ran local at $0   ·   Databricks: 3 job runs, 60-94 s</text>
+<rect x="40" y="1090" width="1800" height="56" rx="6" fill="#F4F8FC" stroke="#6C8EBF"/>
+<image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTExLjkgMmMtMi42IDAtNC40LjktNC40IDN2Mi4yaDQuNnYuOEg1LjZDMy42IDggMiA5LjQgMiAxMi4yczEuNCA0IDMuNCA0aDEuNnYtMi42YzAtMiAxLjYtMy40IDMuNi0zLjRoNC4yYzEuNyAwIDMtMS4zIDMtM1Y1YzAtMS45LTEuNy0zLTMuOS0zeiIgZmlsbD0iIzM3NzZBQiIvPjxwYXRoIGQ9Ik0xMi4xIDIyYzIuNiAwIDQuNC0uOSA0LjQtM3YtMi4yaC00LjZ2LS44aDYuNWMyIDAgMy42LTEuNCAzLjYtNC4ycy0xLjQtNC0zLjQtNGgtMS42djIuNmMwIDItMS42IDMuNC0zLjYgMy40SDkuMmMtMS43IDAtMyAxLjMtMyAzVjE5YzAgMS45IDEuNyAzIDMuOSAzeiIgZmlsbD0iI0ZGRDQzQiIvPjwvc3ZnPg==" x="52" y="1108.0" width="20" height="20"/>
+<text x="82" y="1113" font-size="11" font-weight="700" fill="#1a1a1a">Verification</text>
+<text x="82" y="1132" font-size="10" fill="#333">149 pytest   ·   local Bronze == cloud Bronze, row for row (D-33)   ·   DF↔D offset corrected (D-28)   ·   Asset Bundles: dev/prod isolated (D-35)</text>
+</svg>

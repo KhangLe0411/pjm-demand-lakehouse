@@ -1,0 +1,209 @@
+# CI/CD plan
+
+Written against what exists, not against a reference architecture. Three facts checked
+first, because two of them block the first line of YAML.
+
+| | state | consequence |
+|---|---|---|
+| git repository | **none** | there is nothing for CI to trigger on |
+| ingestion in the workflow | **absent** — the DAG starts at Bronze | a scheduled run reprocesses the same landing files forever |
+| `allowedToCreateApps` on the tenant | **true** | a service principal is possible, so OIDC is on the table |
+
+---
+
+## Phase 0 — the blockers
+
+Nothing below matters until these are done, and they are worth doing regardless.
+
+### 0.1 Version control
+
+```bash
+git init && git add -A && git commit -m "Initial: V1 lakehouse, D-01..D-38"
+gh repo create energy-demand-lakehouse --private --source=. --push
+```
+
+`.gitignore` already excludes `.env`, `data/`, `.venv/`. Verify before the first push —
+`data/` is 86 MB and `.env` holds the EIA key.
+
+### 0.2 Ingestion becomes a job task
+
+Today `eia_client.py` and `weather_client.py` run on a laptop and write to local disk,
+then azcopy moves the files. A scheduled pipeline that never gets new files is not a
+pipeline.
+
+Two changes:
+
+1. A notebook task `00_ingest` running both extractors, writing **directly** to
+   `abfss://energy@.../landing/` rather than to local disk. The extractors already take
+   an `--out` path, so this is a parameter, not a rewrite.
+2. The EIA key moves from `.env` to a Databricks secret scope:
+
+```bash
+databricks secrets create-scope energy
+databricks secrets put-secret energy eia_api_key
+# notebook: os.environ["EIA_API_KEY"] = dbutils.secrets.get("energy", "eia_api_key")
+```
+
+Until this exists, CI can deploy the pipeline but cannot honestly claim it runs
+end to end.
+
+### 0.3 Service principal for prod
+
+Prod currently deploys from a laptop under a **user path** (D-35), which is orphaned
+the day that account is deprovisioned — and CI cannot authenticate as a human anyway.
+
+```bash
+az ad sp create-for-rbac --name sp-energy-cicd --skip-assignment
+# grant: Storage Blob Data Contributor on container `energy`
+# add as a Databricks service principal; grant USE CATALOG / CREATE on `energy`
+# then move the prod bundle root_path off the user path
+```
+
+---
+
+## Phase 1 — three workflows, not one
+
+Production separates *checking* from *deploying* from *promoting*, because they have
+different blast radii and different approval requirements.
+
+### `ci.yml` — on every pull request
+
+Costs nothing in cloud spend, so it runs on every push.
+
+```
+ruff check .
+pytest -q                       149 tests, ~80 s
+databricks bundle validate -t dev
+databricks bundle validate -t prod
+```
+
+**The whole suite is already CI-ready.** Nothing in it needs Databricks: the registry
+tests use a local SQLite backend and the Spark tests use local PySpark. That was a
+consequence of keeping `src/` free of Databricks imports (D-12), and it pays off here —
+CI needs a JDK and `pip install`, nothing else.
+
+Two of those tests earn their place specifically in CI, because they assert properties
+of the code rather than behaviour under execution, and so catch what running on a dev
+machine never will:
+
+* no `.cache()` / `.persist()` anywhere in `src/` — unsupported on serverless (D-34)
+* notebooks parse, declare the Databricks header, and hard-code no catalog (D-35)
+
+### `cd-dev.yml` — on merge to `main`
+
+```
+<everything in ci.yml>
+databricks bundle deploy -t dev
+databricks bundle run energy_daily_pipeline -t dev     # gated, see below
+assert leakage violations == 0 and row counts > 0
+```
+
+**Deploy on merge; do not run on merge.** A full dev run is ~5 minutes of serverless
+compute. On a $100 student credit, twenty merges a day is a real number. Run on manual
+dispatch or nightly instead, and let the deploy itself be the merge-time signal.
+
+This is a genuine production trade rather than a shortcut: teams with a cost ceiling
+make exactly this call, and the alternative — running everything on every merge —
+is what produces a surprise invoice.
+
+### `cd-prod.yml` — on tag `v*`
+
+```
+environment: prod          # GitHub Environment with a required reviewer
+databricks bundle deploy -t prod
+smoke: bundle summary + assert the job exists and is PAUSED
+```
+
+The approval gate is a GitHub Environment reviewer, not a branch rule. Deploying prod
+should require a person, and the audit trail should record which one.
+
+No automatic prod run. The schedule owns that, and it stays `PAUSED` until someone
+decides otherwise.
+
+---
+
+## Phase 2 — authentication, without long-lived secrets
+
+```
+GitHub Actions  --OIDC-->  Entra ID federated credential
+                           └─> sp-energy-cicd
+                               ├─ Storage Blob Data Contributor on container energy
+                               └─ Databricks service principal (workspace + UC grants)
+```
+
+No `DATABRICKS_TOKEN` in repository secrets. A PAT in a secret is the thing this
+replaces: it does not expire on its own, it survives the person who made it, and it
+reads the same in a log as any other string.
+
+Federated credential subject, scoped per environment so a PR cannot deploy prod:
+
+```
+repo:<owner>/energy-demand-lakehouse:environment:prod
+repo:<owner>/energy-demand-lakehouse:ref:refs/heads/main
+```
+
+---
+
+## Phase 3 — the details that decide whether it survives contact
+
+**Concurrency.** Two deploys to one target corrupt bundle state.
+
+```yaml
+concurrency:
+  group: deploy-${{ github.workflow }}-${{ inputs.target || 'dev' }}
+  cancel-in-progress: false      # never cancel a deploy mid-flight
+```
+
+`cancel-in-progress: false` is deliberate. Cancelling a build is free; cancelling a
+half-written deployment state is not.
+
+**Pinning.** The Databricks CLI changes behaviour between minor versions — the flags
+used in this project (`--rerun-all-failed-tasks`, `bundle summary`) already shifted
+once. Pin it:
+
+```yaml
+- uses: databricks/setup-cli@v0.299.0
+```
+
+**Java.** PySpark 3.5 needs JDK 11 or 17, not 21 (found the hard way locally).
+
+```yaml
+- uses: actions/setup-java@v4
+  with: { distribution: temurin, java-version: '11' }
+```
+
+**Caching.** `~/.cache/pip` and `~/.ivy2` — the latter holds the delta-spark jars and
+saves ~30 s per run.
+
+**What CI must not do.** Never run `bundle destroy`, never deploy prod from a branch,
+never run the full pipeline on a PR from a fork. The last one matters even on a private
+repo: a fork PR that could trigger a cloud deploy is a credential-exfiltration path.
+
+---
+
+## Ordering, and what each step actually buys
+
+| # | step | buys |
+|---|---|---|
+| 1 | git + GitHub repo | everything else becomes possible |
+| 2 | `ci.yml` | the 149 tests stop depending on someone remembering to run them |
+| 3 | ingestion as a job task + secret scope | the schedule becomes meaningful |
+| 4 | service principal + OIDC | prod stops depending on one laptop and one person |
+| 5 | `cd-dev.yml` | deployment stops being a manual CLI sequence |
+| 6 | `cd-prod.yml` + approval | promotion becomes a recorded decision |
+
+Steps 1 and 2 are an afternoon and deliver most of the value. Steps 3 and 4 are the
+real work, and step 4 is the one that closes the gap this project has been carrying
+since D-35.
+
+## Deliberately out of scope
+
+**Terraform.** Asset Bundles already manage the Databricks resources. Terraform would
+manage the Azure ones — storage, access connector, workspace — which were created once
+and have not changed since. Adding it now is ceremony; it earns its place when those
+resources start changing or need reproducing in a second subscription.
+
+**Automatic model promotion from CI.** The promotion gate lives in the refit job and
+compares against the incumbent's recorded score (D-36). Moving that decision into a
+deployment pipeline would couple two things that should stay separate: shipping code
+and choosing which model serves.

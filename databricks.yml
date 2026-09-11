@@ -1,0 +1,66 @@
+# Databricks Asset Bundle — job, notebooks and the transform library as one deployable
+# unit. Replaces hand-uploading notebooks with `databricks workspace import`, which had
+# no record of what was deployed or from which revision.
+
+bundle:
+  name: energy
+
+include:
+  - resources/*.yml
+
+# Only these are synced. Excluding data/ matters: the landing zone is 61 MB of Parquet
+# that already lives on ADLS, and .venv is far larger still.
+sync:
+  include:
+    - notebooks/**
+    - src/**
+  exclude:
+    - "**/__pycache__/**"
+    - data/**
+    - .venv/**
+
+variables:
+  catalog:
+    description: Unity Catalog holding bronze / silver / gold
+    default: energy
+  landing_root:
+    description: Where the extractors write Parquet
+    default: abfss://energy@stlakeobs0803.dfs.core.windows.net/landing
+  checkpoint_root:
+    description: >-
+      Auto Loader checkpoint location. Parameterised per target for the same reason as
+      the catalog, and it is the less obvious one: a checkpoint is per-environment
+      STATE. Sharing it would let a dev run advance prod's offsets, after which prod
+      skips those files silently — no error, just missing data.
+    default: abfss://energy@stlakeobs0803.dfs.core.windows.net/_checkpoints
+
+targets:
+  dev:
+    mode: development     # prefixes jobs with [dev <user>], forces schedules paused
+    default: true
+    workspace:
+      host: https://adb-7405610310266341.1.azuredatabricks.net
+    variables:
+      catalog: energy_dev
+      checkpoint_root: abfss://energy@stlakeobs0803.dfs.core.windows.net/_checkpoints_dev
+
+  prod:
+    mode: production
+    workspace:
+      host: https://adb-7405610310266341.1.azuredatabricks.net
+      # Not /Shared. That folder is writable by every workspace user at the filesystem
+      # level, and declaring narrower `permissions` in the bundle does not change its
+      # ACL — so putting prod there would look restricted while not being it. This
+      # workspace hosts a second project, which makes the risk concrete.
+      #
+      # A user path is honest for a single-owner project and wrong for a team: it is
+      # orphaned the day that account is deprovisioned. The real answer is a service
+      # principal owning prod, deployed from CI rather than a laptop. Recorded as the
+      # gap it is instead of papered over.
+      root_path: /Users/20133050@student.hcmute.edu.vn/.bundle/${bundle.name}/${bundle.target}
+    permissions:
+      - level: CAN_MANAGE
+        user_name: 20133050@student.hcmute.edu.vn
+    variables:
+      catalog: energy
+      checkpoint_root: abfss://energy@stlakeobs0803.dfs.core.windows.net/_checkpoints

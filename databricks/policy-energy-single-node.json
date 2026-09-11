@@ -1,0 +1,43 @@
+{
+  "num_workers": {
+    "type": "fixed",
+    "value": 0
+  },
+  "autotermination_minutes": {
+    "type": "fixed",
+    "value": 10
+  },
+  "runtime_engine": {
+    "type": "fixed",
+    "value": "STANDARD"
+  },
+  "node_type_id": {
+    "type": "allowlist",
+    "values": [
+      "Standard_DS3_v2",
+      "Standard_D4ds_v5",
+      "Standard_F4s"
+    ],
+    "defaultValue": "Standard_DS3_v2"
+  },
+  "spark_version": {
+    "type": "unlimited",
+    "defaultValue": "auto:latest-lts"
+  },
+  "spark_conf.spark.databricks.cluster.profile": {
+    "type": "fixed",
+    "value": "singleNode"
+  },
+  "spark_conf.spark.master": {
+    "type": "fixed",
+    "value": "local[*]"
+  },
+  "custom_tags.ResourceClass": {
+    "type": "fixed",
+    "value": "SingleNode"
+  },
+  "custom_tags.project": {
+    "type": "fixed",
+    "value": "energy"
+  }
+}

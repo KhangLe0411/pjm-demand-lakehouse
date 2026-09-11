@@ -1,0 +1,121 @@
+{
+  "name": "energy_daily_pipeline",
+  "description": "Bronze -> Silver -> Gold -> Features -> leakage gate -> Forecast -> Accuracy. The audit sits upstream of the forecast on purpose: a leaking feature set must stop the pipeline, not produce a number that looks usable (D-25).",
+  "max_concurrent_runs": 1,
+  "tags": {
+    "project": "energy"
+  },
+  "queue": {
+    "enabled": true
+  },
+  "tasks": [
+    {
+      "task_key": "bronze",
+      "notebook_task": {
+        "notebook_path": "/Users/20133050@student.hcmute.edu.vn/energy/01_bronze_autoloader",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 3600,
+      "max_retries": 1,
+      "min_retry_interval_millis": 60000
+    },
+    {
+      "task_key": "silver",
+      "notebook_task": {
+        "notebook_path": "/Users/20133050@student.hcmute.edu.vn/energy/02_silver",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 3600,
+      "max_retries": 1,
+      "min_retry_interval_millis": 60000,
+      "depends_on": [
+        {
+          "task_key": "bronze"
+        }
+      ]
+    },
+    {
+      "task_key": "gold",
+      "notebook_task": {
+        "notebook_path": "/Users/20133050@student.hcmute.edu.vn/energy/03_gold",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 3600,
+      "max_retries": 1,
+      "min_retry_interval_millis": 60000,
+      "depends_on": [
+        {
+          "task_key": "silver"
+        }
+      ]
+    },
+    {
+      "task_key": "features",
+      "notebook_task": {
+        "notebook_path": "/Users/20133050@student.hcmute.edu.vn/energy/04_features",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 3600,
+      "max_retries": 1,
+      "min_retry_interval_millis": 60000,
+      "depends_on": [
+        {
+          "task_key": "silver"
+        }
+      ]
+    },
+    {
+      "task_key": "leakage_audit",
+      "notebook_task": {
+        "notebook_path": "/Users/20133050@student.hcmute.edu.vn/energy/05_leakage_audit",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 3600,
+      "max_retries": 1,
+      "min_retry_interval_millis": 60000,
+      "depends_on": [
+        {
+          "task_key": "features"
+        }
+      ]
+    },
+    {
+      "task_key": "forecast",
+      "notebook_task": {
+        "notebook_path": "/Users/20133050@student.hcmute.edu.vn/energy/06_forecast",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 3600,
+      "max_retries": 1,
+      "min_retry_interval_millis": 60000,
+      "depends_on": [
+        {
+          "task_key": "leakage_audit"
+        }
+      ]
+    },
+    {
+      "task_key": "accuracy",
+      "notebook_task": {
+        "notebook_path": "/Users/20133050@student.hcmute.edu.vn/energy/07_forecast_accuracy",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 3600,
+      "max_retries": 1,
+      "min_retry_interval_millis": 60000,
+      "depends_on": [
+        {
+          "task_key": "forecast"
+        },
+        {
+          "task_key": "silver"
+        }
+      ]
+    }
+  ],
+  "schedule": {
+    "quartz_cron_expression": "0 0 11 * * ?",
+    "timezone_id": "America/New_York",
+    "pause_status": "PAUSED"
+  }
+}

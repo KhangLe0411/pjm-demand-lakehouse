@@ -1,0 +1,81 @@
+resources:
+  jobs:
+    energy_daily_pipeline:
+      name: energy_daily_pipeline
+      description: >-
+        Bronze -> Silver -> Gold -> Features -> leakage gate -> Forecast -> Accuracy.
+        The audit sits upstream of the forecast on purpose: a leaking feature set must
+        stop the pipeline, not produce a number that looks usable (D-25).
+      tags:
+        project: energy
+      queue:
+        enabled: true
+      max_concurrent_runs: 1
+
+      # Declared here rather than installed with %pip in the notebook. Measured: the
+      # in-notebook install plus restartPython() accounted for ~41 s of a 78 s task —
+      # more than everything the notebook actually does. Serverless prepares a declared
+      # environment before the task starts and no interpreter restart is needed.
+      #
+      # Only the tasks that need them carry this; the Spark-only tasks would pay the
+      # resolution cost for nothing.
+      environments:
+        - environment_key: ml
+          spec:
+            client: "3"
+            dependencies:
+              - xgboost==3.4.1
+              - mlflow
+
+      # Records the intended cadence — after the 10:00 cutoff — without committing a
+      # student credit to unattended runs. `mode: development` pauses this regardless.
+      schedule:
+        quartz_cron_expression: "0 0 11 * * ?"
+        timezone_id: America/New_York
+        pause_status: PAUSED
+
+      tasks:
+        - task_key: bronze
+          notebook_task:
+            notebook_path: ../notebooks/01_bronze_autoloader.py
+            base_parameters:
+              catalog: ${var.catalog}
+              landing_root: ${var.landing_root}
+              checkpoint_root: ${var.checkpoint_root}
+
+        - task_key: silver
+          depends_on: [{ task_key: bronze }]
+          notebook_task:
+            notebook_path: ../notebooks/02_silver.py
+            base_parameters: { catalog: "${var.catalog}" }
+
+        - task_key: gold
+          depends_on: [{ task_key: silver }]
+          notebook_task:
+            notebook_path: ../notebooks/03_gold.py
+            base_parameters: { catalog: "${var.catalog}" }
+
+        - task_key: features
+          depends_on: [{ task_key: silver }]
+          notebook_task:
+            notebook_path: ../notebooks/04_features.py
+            base_parameters: { catalog: "${var.catalog}" }
+
+        - task_key: leakage_audit
+          depends_on: [{ task_key: features }]
+          notebook_task:
+            notebook_path: ../notebooks/05_leakage_audit.py
+            base_parameters: { catalog: "${var.catalog}" }
+
+        - task_key: forecast
+          depends_on: [{ task_key: leakage_audit }]
+          environment_key: ml
+          notebook_task:
+            notebook_path: ../notebooks/06_forecast.py
+            base_parameters: { catalog: "${var.catalog}" }
+
+        - task_key: accuracy
+          depends_on: [{ task_key: forecast }, { task_key: silver }]
+          notebook_task:
+            notebook_path: ../notebooks/07_forecast_accuracy.py
+            base_parameters: { catalog: "${var.catalog}" }

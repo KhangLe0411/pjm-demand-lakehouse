@@ -1,0 +1,19 @@
+{
+  "name": "energy_bronze_ingest",
+  "description": "Landing Parquet on ADLS -> energy.bronze.* via Auto Loader. Triggered (availableNow), not continuous: the feed is hourly and a 24/7 stream would bill continuously to shave a latency nobody waits on (D-12).",
+  "max_concurrent_runs": 1,
+  "tasks": [
+    {
+      "task_key": "bronze_autoloader",
+      "notebook_task": {
+        "notebook_path": "/Users/20133050@student.hcmute.edu.vn/energy/01_bronze_autoloader",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 3600,
+      "max_retries": 1,
+      "min_retry_interval_millis": 60000
+    }
+  ],
+  "tags": { "project": "energy" },
+  "queue": { "enabled": true }
+}
