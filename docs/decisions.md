@@ -1771,7 +1771,8 @@ because being locked out of your own prod at 3am is the worse failure.
 
 ### Still tied to the old path
 
-`bundle destroy` on the old user path is deliberately **not** run yet. The current
+`bundle destroy` on the old user path is deliberately **not** run yet — and see D-44:
+by the time it could be, that command meant something else. The current
 champion (`energy.ml.demand_forecaster` v2) points at a run in the notebook-backed
 experiment that lives there; deleting the folder now would take the run with it. The
 tie breaks on its own at the next `energy_monthly_refit`, which logs to the declared
@@ -1933,7 +1934,7 @@ deployment against `v0.1.0` at `1adf728`.
 
 ### The gaps this leaves
 
-Two, both deliberate and both already named. `bundle destroy` on the old user path waits
+Two, both deliberate and both already named. Removing the old user path waits
 for the next refit to move the champion's lineage off it (D-40). And the daily schedule
 is `PAUSED`: everything is in place for it to run unattended, and turning it on is a
 decision about spending, not about whether the pipeline works.
@@ -2014,7 +2015,8 @@ and it is recorded here rather than made quietly.
 
 ### Consequence for the cleanup
 
-`bundle destroy` on the old user path stays unsafe: `@champion` is still v2 and the
+Removing the old user path stays unsafe (and `bundle destroy` is the wrong command for
+it — see D-44): `@champion` is still v2 and the
 forecast task reads `client.get_run(mv.run_id)` against a run that lives there. The tie
 breaks when a candidate is promoted — on a comparison worth trusting.
 
@@ -2073,3 +2075,54 @@ warning, and `comparison_informative: false` rides in the run output and the reg
 version's params. The distinction being kept is between *evidence of no difference* and
 *no evidence* — the gate exists to stop a refit being assumed an improvement (D-29), and
 a gate that reports absence of information as reassurance has quietly resumed assuming.
+
+### The lineage is cut — and the cleanup command in D-40, D-42 and D-43 is now wrong
+
+The prod refit promoted v4 on the fixed comparison, and the champion's run left the
+user path:
+
+```
+before   @champion v2 -> /Users/20133050@…/.bundle/energy/prod/files/notebooks/10_refit_register
+after    @champion v4 -> /Users/67fe02eb…/mlflow-energy
+```
+
+The full daily pipeline then ran green against it — `forecast` reads
+`client.get_run(mv.run_id)`, so a green run is the thing that actually proves the tie is
+gone, not the alias move.
+
+**Three earlier entries say to finish this with `bundle destroy` on the old user path.
+Do not.** The bundle's prod `root_path` now points at the service principal's home, so
+`bundle destroy -t prod` would destroy the *live* deployment — the jobs, their ids and
+their history. The instruction was correct when written and became dangerous the moment
+D-40 moved `root_path`, which is its own small lesson about writing a command into a
+document that outlives the state it assumed. The orphan is a workspace directory and
+wants a workspace command:
+
+```bash
+databricks workspace delete /Users/20133050@…/.bundle/energy/prod --recursive
+```
+
+### What that deletion costs, stated before it is run
+
+The old prod experiment is a child of that directory, so its runs go with it:
+
+```
+v1  old prod path      <- run lost on delete
+v2  old prod path      <- run lost on delete
+v3  declared experiment
+v4  declared experiment   <- champion
+```
+
+Versions 1 and 2 keep their artifacts but lose their runs, and `06_forecast` reads
+`served_model_max_label_ts` from the run — so **rolling `@champion` back to v1 or v2
+would fail** after the delete. v3 remains as a rollback target and is in the declared
+experiment.
+
+That is an acceptable trade rather than a free one, and the reason is specific: v1 and
+v2 recorded their gate scores under the comparison D-44 replaced, so their numbers were
+never comparable to anything measured since. Rolling back to them would restore a model
+whose recorded score cannot be used to judge the next candidate. Keeping v3 keeps a
+rollback that still means something.
+
+The `energy_dev` path is untouched: the laptop's dev deployment still lives there and
+dev versions v1–v4 still point into it.
