@@ -1860,3 +1860,58 @@ The jobs and workspace paths are separate; `catalog`, `landing_root` and
 an error rather than silent data loss, so it is not the hazard D-39 describes, but it is
 the second reason the run is not automatic on merge — the first being that five minutes
 of serverless per merge is a real invoice on a student credit.
+
+## D-42 Promotion becomes a recorded decision
+
+`cd-prod.yml` deploys prod from a `v*` tag, behind a GitHub Environment that requires a
+named reviewer. Pushing `v0.1.0` produced a run in state `waiting`, which is the whole
+point: nothing reached the workspace until a person accepted it.
+
+### A tag, never a branch — and the environment enforces it, not the trigger
+
+A branch moves. An approval recorded against `main` names a commit that may not be
+there when someone reads the audit trail; an approval against `v0.1.0` names exactly
+what shipped, permanently.
+
+Writing `on: push: tags` would be a convention a future edit could quietly drop. The
+environment's deployment policy is the actual control — it was changed from `branch:
+main` to `tag: v*`, so a workflow edited to fire on a branch is refused the environment
+altogether. And because the federated credential's subject is `…:environment:prod`, being
+refused the environment means being refused the credential. **The gate is the token, not
+a dialog.**
+
+### The smoke test compares; it does not assert absolutes
+
+`bundle deploy` reports success per resource, not per property. States that survive it:
+
+* a job deployed without `run_as` runs as whoever deployed it — a human, on an account
+  that expires
+* a schedule live while the repository says `PAUSED`
+* task notebooks still pointing at a path the bundle no longer owns — which is exactly
+  how prod carried an orphaned user path from D-35 to D-40 with every build green
+
+`scripts/check_deploy.py` diffs the live jobs against the config `bundle validate`
+resolves: `run_as`, the whole `schedule` object including `pause_status`, the task set,
+and every notebook path against this deployment's root. It passes against the real prod
+deployment today.
+
+Comparing rather than hard-coding matters here. "Must be PAUSED" would be correct now
+and a false alarm the day someone deliberately unpauses the schedule — and a gate that
+cries wolf gets switched off, taking its true positives with it. Diffing against the
+declared state stays correct through that change, because the change is made in the
+repository first.
+
+Its failure paths are unit-tested against synthetic job settings, for the same reason as
+`check_run.py`: none of them occur during a healthy deploy, so shipping them untested
+would mean shipping them unknown.
+
+### What is verified, and what is not yet
+
+Verified: the environment blocks, the reviewer is required, the deployment policy admits
+only `v*`, and the drift check passes against the live prod jobs.
+
+**Not yet exercised: the `…:environment:prod` federated credential.** Its token is only
+minted after approval, so it cannot be tested without one. Its subject was constructed
+from the same `sub_claim_prefix` that D-41 confirmed empirically for `cd-dev`, differing
+only in the trailing context — good grounds, not proof. Stated as an untested path
+rather than folded into the green ones.
