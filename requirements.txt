@@ -1,9 +1,14 @@
+# Pinned where a version change would move a result. The backtest is seeded and its
+# numbers are quoted in the README and decision log, so xgboost is pinned to the same
+# version the notebooks install on the cluster — otherwise local and cloud could
+# disagree while both look correct.
 pyspark==3.5.3
 delta-spark==3.2.1
-pyarrow
+xgboost==3.4.1
+mlflow==3.16.0
+
+# Unpinned: used through stable APIs, and pinning them buys nothing but upgrade friction.
+numpy
 pandas
-xgboost
-scikit-learn
-polars
+pyarrow
 pytest
-python-dotenv
