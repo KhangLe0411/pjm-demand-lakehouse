@@ -15,7 +15,7 @@ first, because two of them block the first line of YAML.
 
 Nothing below matters until these are done, and they are worth doing regardless.
 
-### 0.1 Version control
+### 0.1 Version control — **done**
 
 ```bash
 git init && git add -A && git commit -m "Initial: V1 lakehouse, D-01..D-38"
@@ -25,7 +25,7 @@ gh repo create energy-demand-lakehouse --private --source=. --push
 `.gitignore` already excludes `.env`, `data/`, `.venv/`. Verify before the first push —
 `data/` is 86 MB and `.env` holds the EIA key.
 
-### 0.2 Ingestion becomes a job task
+### 0.2 Ingestion becomes a job task — **done** (D-39)
 
 Today `eia_client.py` and `weather_client.py` run on a laptop and write to local disk,
 then azcopy moves the files. A scheduled pipeline that never gets new files is not a
@@ -204,8 +204,8 @@ repo: a fork PR that could trigger a cloud deploy is a credential-exfiltration p
 | # | step | buys |
 |---|---|---|
 | 1 | git + GitHub repo | everything else becomes possible |
-| 2 | `ci.yml` | the 149 tests stop depending on someone remembering to run them |
-| 3 | ingestion as a job task + secret scope | the schedule becomes meaningful |
+| 2 | `ci.yml` — **done** | the tests stop depending on someone remembering to run them |
+| 3 | ingestion as a job task + secret scope — **done** | the schedule becomes meaningful |
 | 4 | service principal + OIDC | prod stops depending on one laptop and one person |
 | 5 | `cd-dev.yml` | deployment stops being a manual CLI sequence |
 | 6 | `cd-prod.yml` + approval | promotion becomes a recorded decision |

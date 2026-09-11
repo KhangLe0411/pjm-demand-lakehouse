@@ -1518,3 +1518,91 @@ serverless compute.
 
 The instrumentation stays in the notebook. The next person to claim something here is
 slow will have numbers to argue with.
+
+---
+
+## D-39 Ingestion becomes a job task — the pipeline stops being fed by hand
+
+Until now the DAG began at Bronze, reading a landing zone a laptop refreshed with
+`azcopy`. The schedule would have run daily, reported success, and never seen a new
+hour. `00_ingest` is now the first task.
+
+```
+ingest → bronze → silver ─┬→ gold
+                          └→ features → leakage_audit → forecast → accuracy
+```
+
+### Writing to cloud storage from non-Spark code
+
+The extractors use `pathlib` and `pyarrow`, neither of which can address `abfss://`.
+A **UC external volume** gives them a real path (`/Volumes/energy/bronze/landing`) over
+the same bytes Auto Loader reads through `abfss://`. The alternative — write to driver
+disk, copy afterwards — adds a second step that can fail independently of the one that
+fetched the data, and then the landing zone holds a partial day with no record of why.
+
+The API key moved from a gitignored `.env` to a Databricks secret scope.
+`dbutils.secrets.get` redacts the value in cell output and logs; a widget or an
+environment variable would print it.
+
+### Unity Catalog forced a decision that was overdue
+
+Creating the second volume failed:
+
+```
+Input path url 'abfss://.../landing' overlaps with other external location
+```
+
+UC refuses two external volumes over one path, and it is right to — two names for one
+location is ambiguous ownership. That settled a question this project had been
+avoiding: with ingestion now **writing** to the landing zone, dev and prod sharing one
+would let a dev run put files into prod's source of truth.
+
+`landing_dev` was created by a server-side copy within the same account (4,864 files,
+28 MB, 4.5 min), and `landing_root` became a per-target bundle variable alongside
+`catalog` and `checkpoint_root`. Dev's Bronze and checkpoint were dropped and rebuilt,
+since an Auto Loader checkpoint is bound to its source path.
+
+### The run times are the evidence
+
+| | dev | prod |
+|---|---|---|
+| ingest | 36 s | 29 s |
+| **bronze** | **128 s** | **40 s** |
+
+Same code. Dev's checkpoint had been deleted, so it re-read all 4,864 files; prod's was
+intact, so it processed only the 29 new ones. Had prod also taken ~128 s, the checkpoint
+would not have been matching its source — a failure that raises nothing and silently
+doubles Bronze.
+
+Counts reconcile exactly, and both environments agree through independent paths:
+
+```
+eia      271,989 + 1,316 = 273,305      files 2,839 + 15 = 2,854
+weather  777,600 + 5,376 = 782,976      files 2,025 + 14 = 2,039
+silver    67,375 -> 67,447   (+72 hours, three new days)
+features  last forecast_date 2026-09-06 -> 2026-09-09
+```
+
+### Revisions: an instrument that now reports
+
+The lookback is 14 days rather than "since the last run", on purpose: upstream revises
+recent hours, so re-fetching them is the point. Each pass lands a new vintage and Silver
+resolves them; asking only for genuinely new hours would miss every correction.
+
+That lookback produced 644 additional vintage pairs — and `revision_count` reports:
+
+```
+hours_with_a_revision       0
+max_revisions_on_one_hour   0
+```
+
+All 644 were byte-identical re-fetches, which is the distinction D-13 was built to make.
+
+**Stated precisely: no revision was observed in this 14-day window. That is not the same
+as EIA not revising.** Published adjustments run on a longer cycle, so a 14-day lookback
+may simply be too short to intersect one. What exists now is an instrument and a reading
+from it; extending the window costs API calls and vintages, and is worth doing only if
+the reading stays at zero long enough to be worth testing.
+
+Until this run the metric was computed and never surfaced — indistinguishable from one
+that was broken. It is now in the Silver task's output.

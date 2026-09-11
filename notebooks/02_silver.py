@@ -49,7 +49,21 @@ weather.write.mode("overwrite").option("overwriteSchema", "true") \
 # COMMAND ----------
 
 import json  # noqa: E402
+
+from pyspark.sql import functions as F  # noqa: E402
+
 out = {t: spark.table(f"{CATALOG}.silver.{t}").count() for t in
        ("electricity_hourly", "electricity_quarantine", "weather_forecast_hourly")}
+
+# Revisions are the reason Bronze is append-only and the reason `revision_count`
+# exists, yet the pipeline never reported them. A metric that is computed and never
+# surfaced is indistinguishable from one that is broken.
+rev = spark.table(f"{CATALOG}.silver.electricity_hourly").agg(
+    F.sum((F.col("revision_count") > 0).cast("int")).alias("hours_revised"),
+    F.max("revision_count").alias("max_revisions"),
+).first()
+out["hours_with_a_revision"] = int(rev["hours_revised"] or 0)
+out["max_revisions_on_one_hour"] = int(rev["max_revisions"] or 0)
+
 print(json.dumps(out, indent=2))
 dbutils.notebook.exit(json.dumps(out))
