@@ -1905,13 +1905,35 @@ Its failure paths are unit-tested against synthetic job settings, for the same r
 `check_run.py`: none of them occur during a healthy deploy, so shipping them untested
 would mean shipping them unknown.
 
-### What is verified, and what is not yet
+### The approved run
 
-Verified: the environment blocks, the reviewer is required, the deployment policy admits
-only `v*`, and the drift check passes against the live prod jobs.
+The reviewer accepted, and the one path that could not be tested beforehand was the
+point of interest: the `…:environment:prod` credential, whose token is only minted after
+approval. It matched.
 
-**Not yet exercised: the `…:environment:prod` federated credential.** Its token is only
-minted after approval, so it cannot be tested without one. Its subject was constructed
-from the same `sub_claim_prefix` that D-41 confirmed empirically for `cd-dev`, differing
-only in the trailing context — good grounds, not proof. Stated as an untested path
-rather than folded into the green ones.
+```
+subject claim    - repo:KhangLe0411@120442283/pjm-demand-lakehouse@1365477962:environment:prod
+job_workflow_ref - …/.github/workflows/cd-prod.yml@refs/tags/v0.1.0
+```
+
+The second line is the part worth keeping: the workflow that authenticated is pinned to
+the tag, so the audit trail names the code, not a branch that has since moved.
+
+Every step green, and the deployment left prod where it was rather than rebuilding it:
+
+```
+energy_daily_pipeline  646154696850115  run_as sp-energy-cicd  0 0 11 * * ? PAUSED  7 runs
+energy_monthly_refit    16938506529580  run_as sp-energy-cicd  0 0 3 1 * ?  PAUSED  2 runs
+deployed state matches the bundle
+```
+
+Same job ids as before CI touched them, history intact, schedules still paused — a
+deploy is not the moment to decide a schedule should start. GitHub records the
+deployment against `v0.1.0` at `1adf728`.
+
+### The gaps this leaves
+
+Two, both deliberate and both already named. `bundle destroy` on the old user path waits
+for the next refit to move the champion's lineage off it (D-40). And the daily schedule
+is `PAUSED`: everything is in place for it to run unattended, and turning it on is a
+decision about spending, not about whether the pipeline works.
