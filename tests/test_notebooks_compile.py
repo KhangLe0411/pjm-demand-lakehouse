@@ -114,3 +114,52 @@ def test_every_widget_a_notebook_reads_is_passed_by_its_job():
                     f"{sorted(reads - passed)} to {notebook.name}, which reads them")
                 checked += 1
     assert checked >= 8, f"only {checked} notebook tasks checked — did the glob break?"
+
+
+def test_no_task_passes_a_variable_that_also_names_a_resource():
+    """`mode: development` renames declared resources; the variable behind the name keeps
+    its raw value. So a variable used BOTH to name a resource AND as a task parameter
+    means two different strings in dev and the same string in prod.
+
+    That happened: the refit job passed `${var.experiment_path}` while the experiment
+    resource was named from the same variable. DAB created the declared experiment with
+    its permissions block, and `mlflow.set_experiment` made a second, undeclared one
+    beside it and logged there. Four experiments existed; the two DAB managed held no
+    runs. Nothing failed — production mode adds no prefix, so prod was right by
+    coincidence.
+
+    The rule is the invariant, not a name pattern: an earlier version of this test
+    matched variable names against resource names, passed with the bug still in place,
+    and would have shipped as reassurance.
+    """
+    import re
+
+    import yaml
+
+    resources_dir = pathlib.Path("resources")
+    naming_vars: dict[str, str] = {}
+    for f in sorted(resources_dir.glob("*.yml")):
+        spec = yaml.safe_load(f.read_text()) or {}
+        for kind, entries in ((spec.get("resources") or {}).items()):
+            if kind == "jobs":
+                continue
+            for res_name, body in (entries or {}).items():
+                for var in re.findall(r"\$\{var\.([A-Za-z0-9_]+)\}",
+                                      str((body or {}).get("name", ""))):
+                    naming_vars[var] = f"{kind}.{res_name}"
+    assert naming_vars, "no resource takes its name from a variable — has the layout changed?"
+
+    offenders = []
+    for f in sorted(resources_dir.glob("*.job.yml")):
+        spec = yaml.safe_load(f.read_text()) or {}
+        for job in ((spec.get("resources") or {}).get("jobs") or {}).values():
+            for task in job.get("tasks", []):
+                params = (task.get("notebook_task") or {}).get("base_parameters") or {}
+                for key, value in params.items():
+                    for var in re.findall(r"\$\{var\.([A-Za-z0-9_]+)\}", str(value)):
+                        if var in naming_vars:
+                            offenders.append(
+                                f"{f.name}:{task['task_key']}: {key} passes ${{var.{var}}}, "
+                                f"which also names {naming_vars[var]} — reference the "
+                                f"resource instead so dev's renaming is carried through")
+    assert not offenders, offenders

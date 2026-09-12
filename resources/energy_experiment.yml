@@ -13,6 +13,17 @@
 # nested under an `mlflow/` folder: DAB does not create parent directories, and the
 # first attempt failed with `Parent directory does not exist`. A path needing a manual
 # mkdir is a path CI trips over the first time it runs against a fresh workspace.
+#
+# The job must take its `experiment_path` from THIS resource
+# (`${resources.experiments.energy_forecaster.name}`), not from `${var.experiment_path}`.
+# They are the same string in prod and different in dev: `mode: development` prefixes
+# resource names with `[dev <deployer>]`, and the raw variable does not carry that. When
+# the job passed the variable, DAB created the declared experiment — permissions and all
+# — and `mlflow.set_experiment` then quietly made a *second*, undeclared one next to it
+# and logged there. Four experiments existed; the two DAB managed held zero runs.
+#
+# Note the reference resolves at DEPLOY time, not during `bundle validate` — validate
+# prints it back literally, which reads exactly like it is unsupported.
 resources:
   experiments:
     energy_forecaster:

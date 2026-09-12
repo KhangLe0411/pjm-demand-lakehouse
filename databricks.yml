@@ -29,9 +29,12 @@ variables:
     default: abfss://energy@stlakeobs0803.dfs.core.windows.net/landing
   experiment_path:
     description: >-
-      Where MLflow runs are logged. Explicit because the default is the notebook's own
-      workspace path, which ties model lineage to where the bundle happens to be
-      deployed — see resources/energy_experiment.yml.
+      Base name for the MLflow experiment. Explicit because the default is the
+      notebook's own workspace path, which ties model lineage to where the bundle
+      happens to be deployed.
+
+      This feeds the experiment RESOURCE only. Jobs must reference the resource, since
+      development mode renames it — see resources/energy_experiment.yml.
     default: /Users/67fe02eb-8a91-46c3-8094-63902c4df97c/mlflow-energy
   checkpoint_root:
     description: >-

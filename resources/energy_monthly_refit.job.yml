@@ -45,4 +45,4 @@ resources:
               catalog: ${var.catalog}
               holdout_months: "2"
               tolerance_pct: "2.0"
-              experiment_path: ${var.experiment_path}
+              experiment_path: ${resources.experiments.energy_forecaster.name}

@@ -2164,3 +2164,64 @@ post-conditions holding.
 
 The last step is the one that matters. Everything before it is inference about whether
 the deletion broke anything; only running the consumer answers it.
+
+## D-45 The declared experiment was not the one being used
+
+Asked why three `energy_monthly_refit` jobs exist — one per (target, deployer), which is
+what `mode: development` is for — and found something else while listing them. Four
+MLflow experiments existed where there should have been two:
+
+```
+mlflow-energy                           6 runs   prod: declared and used
+mlflow-energy_dev                       2 runs   what dev actually wrote to
+[dev 20133050] mlflow-energy_dev        0 runs   declared by DAB, unused
+[dev sp_energy_cicd] mlflow-energy_dev  0 runs   declared by DAB, unused
+```
+
+`mode: development` prefixes declared **resource names** with `[dev <deployer>]`. The
+variable behind the name keeps its raw value. The refit job passed
+`${var.experiment_path}`, so DAB created the declared experiment — carrying the
+permissions block D-40 added — and `mlflow.set_experiment` then made a second,
+undeclared one next to it and logged there.
+
+Nothing failed, and nothing would have. **Prod was correct by coincidence:** production
+mode adds no prefix, so the two names are the same string there. Only dev diverged, and
+only in a way visible by listing the workspace folder.
+
+The fix is for the job to reference the resource rather than the variable that names it:
+
+```yaml
+experiment_path: ${resources.experiments.energy_forecaster.name}
+```
+
+That reference resolves at **deploy** time, not during `bundle validate` — validate
+echoes it back literally, which reads exactly like an unsupported attribute. Checking it
+with `validate` said it did not work; deploying to dev and reading the job back said it
+did.
+
+### The first gate for this passed with the bug still in it
+
+The test written first compared variable names against resource names heuristically. It
+went green against the broken YAML — the names simply did not resemble each other — and
+would have shipped as reassurance about something it never checked.
+
+The rule is now the invariant rather than a name pattern: **no task parameter may pass a
+variable that is also used to name a resource.** Verified in both directions by exit
+code, not by reading the output:
+
+```
+bug present -> exit 1  "experiment_path passes ${var.experiment_path}, which also names
+                        experiments.energy_forecaster"
+bug absent  -> exit 0
+```
+
+### What this leaves
+
+Dev now has one experiment per deployer, which is what development mode means; the data
+underneath (`energy_dev`, its landing zone, its checkpoint) is still shared, as D-41
+recorded. The undeclared `mlflow-energy_dev` stays for now — dev's `@champion` v6 has its
+run there, the same tie prod had until D-44 — and ages out at the next dev refit.
+
+This bug was introduced by D-40's own fix. The declaration was added to stop MLflow
+choosing the experiment path implicitly, and then the job kept choosing it implicitly by
+another route. Declaring a resource does nothing on its own; something has to point at it.
