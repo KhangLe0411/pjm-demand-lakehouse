@@ -5,20 +5,31 @@ the tables in the shape the report consumes, the model, the DAX, and a layout pr
 rendered from real numbers at
 [`docs/diagrams/powerbi_preview.html`](diagrams/powerbi_preview.html).
 
-## Connection — Import mode, not DirectQuery
+## Connection — Azure Databricks connector, Import mode
 
 ```
-Get Data → Azure Data Lake Storage Gen2
-   abfss://energy@stlakeobs0803.dfs.core.windows.net/
-Storage: gold/forecast_accuracy, gold/daily_summary, gold/forecast_run
-Mode:    Import
+Get Data → Azure Databricks
+   Server hostname : adb-7405610310266341.1.azuredatabricks.net
+   HTTP path       : /sql/1.0/warehouses/fd3d8f60a5743f25
+   Catalog/schema  : energy / gold
+Mode: Import
 ```
 
-**Do not point this at a SQL Warehouse.** DirectQuery or a scheduled refresh against
-one restarts a serverless warehouse on every poll at roughly $2.8/hour, which is the
-single fastest way to consume the student credit (D-12). Import mode reads the Parquet
-directly and costs no Databricks compute at all. At 158k rows the whole model is a few
-MB in memory.
+**This section previously said to read ADLS Gen2 directly at
+`abfss://…/gold/forecast_accuracy`. That path does not exist.** Every Gold table is a
+Unity Catalog *managed* table, so its files live under
+`_managed/__unitystorage/catalogs/<guid>/tables/<guid>` — opaque identifiers that change
+if a table is recreated, and reading them directly bypasses UC entirely. The
+warehouse-free plan was written against a layout this project does not have.
+
+**Import, not DirectQuery — the distinction the original text lost.** DirectQuery or a
+scheduled refresh does restart the warehouse on every interaction, and that is the
+expensive pattern D-12 warned about. Import runs the query once per refresh and then
+serves from memory: the warehouse is serverless, 2X-Small, auto-stopping after 5
+minutes, so a manual refresh costs roughly one 5-minute idle window. Refreshing when you
+demo costs cents; a 15-minute scheduled refresh does not, and is the thing to avoid.
+
+At ~158k rows the whole model is a few MB in memory.
 
 ## Data model
 

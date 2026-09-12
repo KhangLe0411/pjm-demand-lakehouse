@@ -1262,7 +1262,7 @@ Kafka, Event Hubs, Terraform, DAB/CI-CD, model serving, and other production ext
 [x] Rolling backtesting          55 monthly folds
 [x] Peak evaluation              magnitude, timing, hit rate
 [x] Forecast accuracy monitoring 3 tables, 158,061 scored hours
-[~] One Power BI page            spec + DAX + preview; .pbix is authored in Desktop
+[~] One Power BI page            spec + DAX + preview + build guide; .pbix in Desktop
 ```
 
 ### V2 candidates
@@ -1454,7 +1454,7 @@ V1 is complete when all of the following are true:
 - [x] Results are split by normal/extreme regime. — threshold from each fold's training labels
 - [x] Peak magnitude and timing are evaluated. — magnitude MAPE, timing MAE, exact-hour hit rate
 - [x] Forecast accuracy is stored after actuals arrive. — `forecast_run` / `forecast_prediction` / `forecast_accuracy`, with `is_in_sample` so operational scoring cannot be mistaken for a capability measure
-- [~] A single Power BI page exposes the main business metrics. — tables, data model, DAX and a rendered layout preview exist; the `.pbix` itself is a proprietary binary and is authored in Power BI Desktop ([`docs/powerbi.md`](docs/powerbi.md))
+- [~] A single Power BI page exposes the main business metrics. — tables, data model, DAX, a rendered layout preview and a step-by-step build guide exist; the `.pbix` itself is a proprietary binary and is authored in Power BI Desktop ([`docs/powerbi.md`](docs/powerbi.md) for the design, [`docs/powerbi-build.md`](docs/powerbi-build.md) to build it)
 - [x] README and architecture documentation are reproducible. — `docs/decisions.md` D-01..D-30, diagram generated from code
 
 ---

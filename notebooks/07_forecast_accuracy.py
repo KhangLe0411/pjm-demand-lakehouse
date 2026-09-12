@@ -77,6 +77,53 @@ acc = (pred.join(runs, "forecast_run_id")
        .withColumnRenamed("predicted_p50_mwh", "forecast_mwh")
        .withColumnRenamed("local_hour", "hour_of_day"))
 
+# COMMAND ----------
+
+# `is_peak` and `is_extreme` — the two slices the Power BI page is required to show.
+# Section 26 forbids reporting peak-timing accuracy without a regime split, and the
+# Elliott case study is the reason: on 24-25 Dec 2022 every model missed the peak by
+# 9-13 hours, and the 48.4% headline hides it. Without these columns that guardrail
+# cannot be built, which is how `docs/powerbi.md` came to specify DAX against two
+# columns this table never had.
+
+from pyspark.sql import Window  # noqa: E402
+
+from src.ml.backtest import EXTREME_QUANTILE  # noqa: E402
+
+# The threshold comes from data the serving model had already seen, never from the
+# period being scored — otherwise the hours under evaluation help define what counts as
+# extreme within themselves (README section 19). The backtest takes it per fold; here
+# there is one serving cutoff, so there is one threshold and every model is measured
+# against the same one. That makes the prod regime slices comparable across models,
+# which the backtest's deliberately are not (D-29).
+cutoff = runs.filter("training_data_end IS NOT NULL") \
+             .agg(F.max("training_data_end").alias("c")).first()["c"]
+if cutoff is None:
+    raise RuntimeError(
+        "no model in gold.forecast_run records a training_data_end, so there is no "
+        "cutoff to derive the extreme threshold from without using the scored period "
+        "itself. Run energy_monthly_refit to register a model that records one.")
+
+threshold = (spark.table(f"{CATALOG}.silver.electricity_hourly")
+             .filter(F.col("event_timestamp_utc") <= F.lit(cutoff))
+             .filter("actual_demand_mwh IS NOT NULL "
+                     "AND NOT is_demand_anomaly_suspect "
+                     "AND NOT is_above_historical_record")
+             .selectExpr(f"percentile(actual_demand_mwh, {EXTREME_QUANTILE}) AS t")
+             .first()["t"])
+if threshold is None:
+    raise RuntimeError(f"no clean Silver demand at or before {cutoff}")
+print(f"extreme threshold (P{EXTREME_QUANTILE:.0%} of demand through {cutoff}): "
+      f"{threshold:,.0f} MWh")
+
+# Ranked rather than compared to the daily max: two hours can tie on a float, and a
+# day with two peaks would double-count in every peak measure downstream.
+peak_rank = Window.partitionBy("model", "target_local_date") \
+                  .orderBy(F.col("actual_mwh").desc(), F.col("target_timestamp_utc"))
+acc = (acc.withColumn("extreme_threshold_mwh", F.lit(threshold))
+          .withColumn("is_extreme", F.col("actual_mwh") >= F.lit(threshold))
+          .withColumn("is_peak", F.row_number().over(peak_rank) == 1))
+
 acc.write.mode("overwrite").option("overwriteSchema", "true") \
    .saveAsTable(f"{CATALOG}.gold.forecast_accuracy")
 
@@ -102,6 +149,11 @@ out = {
     "out_of_sample": summarise(oos),
     "in_sample_excluded_rows": a.filter("is_in_sample").count(),
     "all_rows_unsafe_to_compare": summarise(a),
+    # Surfaced because a slice nobody can see the size of is a slice nobody checks.
+    # `peak_hours` should equal one per model per day with an actual.
+    "extreme_threshold_mwh": round(threshold, 1),
+    "peak_hours": a.filter("is_peak").count(),
+    "extreme_hours": a.filter("is_extreme").count(),
 }
 print(json.dumps(out, indent=2))
 dbutils.notebook.exit(json.dumps(out))
